@@ -21,7 +21,7 @@ import { captureSnapshot, pageActiveElement, pageClick, pageClickAt, pageElement
 import { captureScreenshot } from '@/browser/screenshot';
 import { formatSearchResults, webSearch } from '@/browser/websearch';
 import { setControlOverlay } from '@/browser/control';
-import { focusTab, getTab, isRestrictedUrl, navigateAndSettle } from '@/browser/tabs';
+import { describeTabFailure, focusTab, getTab, isRestrictedUrl, navigateAndSettle } from '@/browser/tabs';
 import { hasOriginAccess } from '@/browser/permissions';
 import { assessAction } from '@/safety/policy';
 import { capabilitiesFor } from '@/providers/capabilities';
@@ -75,7 +75,9 @@ async function observeWithRetry(tabId: number, attempts = 3): Promise<PageSnapsh
       await sleepAbortable(500, undefined);
     }
   }
-  throw lastError instanceof Error ? lastError : new Error('Could not read the page.');
+  throw new Error(
+    describeTabFailure(lastError instanceof Error ? lastError.message : 'Could not read the page.'),
+  );
 }
 
 async function ensurePageAccess(
@@ -584,7 +586,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
         } catch (err) {
           if (isAbortError(err)) throw err;
           status = 'failed';
-          resultMessage = err instanceof Error ? err.message : String(err);
+          resultMessage = describeTabFailure(err instanceof Error ? err.message : String(err));
           if (action.type === 'screenshot' && /capture|permission|activeTab/i.test(resultMessage)) {
             captureBlocked = true;
             resultMessage +=

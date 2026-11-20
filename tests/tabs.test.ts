@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setOrbitGroupState } from '@/browser/tabs';
+import { describeTabFailure, isRestrictedUrl, setOrbitGroupState } from '@/browser/tabs';
 
 const tabs = {
   get: vi.fn(),
@@ -64,5 +64,24 @@ describe('ORBIT tab group', () => {
     vi.stubGlobal('chrome', { tabs });
     await expect(setOrbitGroupState(7, 'working')).resolves.toBeUndefined();
     expect(tabs.group).not.toHaveBeenCalled();
+  });
+});
+describe('restricted tabs', () => {
+  it('refuses the Web Store on both hosts', () => {
+    expect(isRestrictedUrl('https://chromewebstore.google.com/detail/orbit')).toBe(true);
+    expect(isRestrictedUrl('https://chrome.google.com/webstore/devconsole')).toBe(true);
+    expect(isRestrictedUrl('chrome://extensions')).toBe(true);
+    expect(isRestrictedUrl(undefined)).toBe(true);
+  });
+
+  it('allows ordinary sites', () => {
+    expect(isRestrictedUrl('https://www.flipkart.com/philips/p/itm123')).toBe(false);
+    expect(isRestrictedUrl('https://duckduckgo.com/?q=test')).toBe(false);
+  });
+
+  it('turns Chrome scripting refusals into an instruction', () => {
+    const message = 'The extensions gallery cannot be scripted.';
+    expect(describeTabFailure(message)).toContain('Open a website tab instead');
+    expect(describeTabFailure('Element not found')).toBe('Element not found');
   });
 });

@@ -27,9 +27,21 @@ export async function navigateTab(tabId: number, url: string): Promise<void> {
 
 export function isRestrictedUrl(url?: string): boolean {
   if (!url) return true;
-  return /^(chrome|edge|brave|opera|vivaldi|about|devtools|view-source|chrome-extension|https:\/\/chromewebstore\.google\.com)/.test(
+  return /^(chrome|edge|brave|opera|vivaldi|about|devtools|view-source|chrome-extension):|^https:\/\/(chrome|chromewebstore)\.google\.com/.test(
     url,
   );
+}
+
+/**
+ * Chrome refuses to inject into its own pages and the Web Store gallery, and
+ * the raw error ("The extensions gallery cannot be scripted") means nothing to
+ * a user. Say what happened and what to do instead.
+ */
+export function describeTabFailure(message: string): string {
+  if (/cannot be scripted|extensions gallery|Cannot access (a )?chrome:\/\/|Cannot access contents/i.test(message)) {
+    return 'Chrome blocks extensions from reading its own pages and the Web Store. Open a website tab instead.';
+  }
+  return message;
 }
 
 export type OrbitGroupState = 'working' | 'waiting' | 'paused' | 'done' | 'failed';
