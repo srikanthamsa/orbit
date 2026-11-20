@@ -1,0 +1,217 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme='dark'] {
+  --bg: #0a0a0c;
+  --bg-elev: #101014;
+  --panel: rgba(255, 255, 255, 0.042);
+  --panel-strong: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #f4f4f6;
+  --muted: #9a9aa2;
+  --faint: #6b6b74;
+  --accent: #5a9bff;
+  --accent-strong: #3f7cf2;
+  --accent-soft: rgba(90, 155, 255, 0.14);
+  --success: #46d39a;
+  --warn: #ffc861;
+  --danger: #ff6b6b;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #f4f4f7;
+  --bg-elev: #ffffff;
+  --panel: rgba(255, 255, 255, 0.85);
+  --panel-strong: rgba(0, 0, 0, 0.045);
+  --border: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --text: #141418;
+  --muted: #5d5d66;
+  --faint: #8a8a93;
+  --accent: #2e6bf0;
+  --accent-strong: #2459cc;
+  --accent-soft: rgba(46, 107, 240, 0.1);
+  --success: #1c9c6d;
+  --warn: #b57d10;
+  --danger: #d94b4b;
+  --shadow: 0 24px 60px rgba(20, 20, 30, 0.12);
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'SF Pro Text',
+    'SF Pro Display',
+    'Segoe UI',
+    Inter,
+    system-ui,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(560px 260px at 78% -12%, rgba(90, 155, 255, 0.1), transparent 68%),
+    radial-gradient(420px 240px at -10% 8%, rgba(90, 155, 255, 0.05), transparent 70%);
+}
+
+[data-theme='light'] body::before {
+  background:
+    radial-gradient(560px 260px at 78% -12%, rgba(46, 107, 240, 0.08), transparent 68%),
+    radial-gradient(420px 240px at -10% 8%, rgba(46, 107, 240, 0.05), transparent 70%);
+}
+
+::selection {
+  background: rgba(90, 155, 255, 0.32);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+textarea {
+  resize: none;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+}
+
+.orb-mark {
+  position: relative;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 42%),
+    conic-gradient(from 210deg, #7db1ff, #3f7cf2, #1c3f8f, #7db1ff);
+  box-shadow:
+    inset 0 0 6px rgba(255, 255, 255, 0.35),
+    0 0 18px rgba(90, 155, 255, 0.35);
+}
+
+.orb-mark::after {
+  content: '';
+  position: absolute;
+  inset: 22%;
+  border-radius: 999px;
+  background: var(--bg);
+  opacity: 0.86;
+}
+
+.live-dot {
+  position: relative;
+}
+.live-dot::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.35;
+  animation: breathe 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  animation: sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+
+.timeline-line {
+  position: absolute;
+  left: 15px;
+  top: 18px;
+  bottom: 6px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--border-strong), var(--border) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

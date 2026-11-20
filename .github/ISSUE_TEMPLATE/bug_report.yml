@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in ORBIT did not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not include API keys or private page content. For security issues use private vulnerability reporting (see SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Objective, site (hostname only), what ORBIT did, and the visible error.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ORBIT version / commit
+    validations:
+      required: true
+  - type: input
+    id: chrome
+    attributes:
+      label: Chrome version and OS
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Provider and model
+      description: e.g. Anthropic claude-sonnet-4-5 (do not paste keys)
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console / timeline details
+      description: Redact keys, cookies and personal data.
+    validations:
+      required: false
