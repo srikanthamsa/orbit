@@ -35,12 +35,94 @@ export function originPattern(url: string): string | null {
   }
 }
 
+type Bucket = 'dawn' | 'morning' | 'afternoon' | 'evening' | 'night';
+
+const GREETINGS: Record<Bucket, string[]> = {
+  dawn: [
+    'Up before the sun, mortal.',
+    'Dawn, mortal. Bold.',
+    'Nobody is awake, mortal.',
+    'Early, mortal. Very early.',
+    'The sun is late, mortal.',
+    'Quiet hours, mortal.',
+  ],
+  morning: [
+    'Good morning, mortal.',
+    'Morning, mortal. Coffee first.',
+    'Morning, mortal. What are we breaking?',
+    'Fresh morning, mortal.',
+    'Good morning, mortal. Let us begin.',
+    'Morning, mortal. Bright eyes.',
+    'New day, mortal.',
+  ],
+  afternoon: [
+    'Good afternoon, mortal.',
+    'Afternoon, mortal. Let us be useful.',
+    'The afternoon is yours, mortal.',
+    'Good afternoon, mortal. What next?',
+    'Post-lunch, mortal. Sharp?',
+    'Afternoon, mortal.',
+  ],
+  evening: [
+    'Good evening, mortal.',
+    'Evening, mortal. What is the plan?',
+    'Good evening, mortal. Still going.',
+    'Evening, mortal. One more task?',
+    'The day is nearly spent, mortal.',
+    'Good evening, mortal. Make it count.',
+  ],
+  night: [
+    'Late one, mortal.',
+    'Still awake, mortal?',
+    'Night, mortal. Quiet out there.',
+    'The hour is late, mortal.',
+    'Again, mortal? Respect.',
+    'Good night, mortal. Or is it?',
+  ],
+};
+
+const PROMPTS = [
+  'What can I help you with?',
+  'What are we doing?',
+  'Where do we start?',
+  "What's next?",
+];
+
+function bucketOf(hour: number): Bucket {
+  if (hour < 5) return 'night';
+  if (hour < 8) return 'dawn';
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  if (hour < 22) return 'evening';
+  return 'night';
+}
+
+/** Stable for the whole browser session, so two opens differ. */
+function sessionOffset(): number {
+  try {
+    const KEY = 'orbit:greet';
+    const existing = Number(window.sessionStorage.getItem(KEY));
+    if (Number.isFinite(existing) && existing > 0) return existing;
+    const fresh = Math.floor(Math.random() * 997) + 1;
+    window.sessionStorage.setItem(KEY, String(fresh));
+    return fresh;
+  } catch {
+    return 0;
+  }
+}
+
+/** Rotates every 20 minutes so a long session is not stuck on one line. */
+function slot(now: Date): number {
+  return Math.floor(now.getTime() / (20 * 60 * 1000)) + sessionOffset();
+}
+
 export function greeting(now = new Date()): string {
-  const h = now.getHours();
-  if (h < 5) return 'Still up, mortal?';
-  if (h < 12) return 'Good morning, mortal.';
-  if (h < 17) return 'Good afternoon, mortal.';
-  return 'Good evening, mortal.';
+  const pool = GREETINGS[bucketOf(now.getHours())];
+  return pool[slot(now) % pool.length];
+}
+
+export function greetingPrompt(now = new Date()): string {
+  return PROMPTS[slot(now) % PROMPTS.length];
 }
 
 export function timeAgo(ts: number, now = Date.now()): string {

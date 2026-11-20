@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useAgentStore } from '@/stores/agent';
 import { getActiveTab, isRestrictedUrl } from '@/browser/tabs';
-import { cn, greeting, hostnameOf, timeAgo } from '@/lib/utils';
+import { cn, greeting, greetingPrompt, hostnameOf, timeAgo } from '@/lib/utils';
 import { Button, IconButton, StatusDot, StatusPill, statusLabel } from '@/components/ui';
 import { ConnectModel } from '@/screens/ConnectModel';
 import { LiquidMultimodalInput } from '@/components/wensity/liquid-multimodal-input';
@@ -101,11 +101,11 @@ export function Home() {
                 day: 'numeric',
               })}
             </p>
-            <h1 className="mt-2.5 text-display font-semibold text-fg">
+            <h1 className="mt-2.5 text-balance text-display font-semibold text-fg">
               {greeting()}
             </h1>
             <p className="mt-1.5 text-title leading-[1.35] text-muted">
-              What can I help you with?
+              {greetingPrompt()}
             </p>
           </div>
 
