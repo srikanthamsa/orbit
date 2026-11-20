@@ -1,40 +1,45 @@
-# Publish checklist
+# Publish ORBIT 1.0.0
 
-The package is built: `.output/orbit-0.3.0-chrome.zip` (191 kB, 14 files, no source maps,
-no dev-only code). Everything a reviewer reads is in this folder.
+## Done and verified
 
-## Only you can do these
+- **Package**: `.output/orbit-1.0.0-chrome.zip`, 14 files, 192 kB, no source maps.
+- **Loads in real Chrome**: `npm run smoke` loads the unpacked build, opens the side panel,
+  round-trips storage and reports zero console errors.
+- **Manifest** as shipped:
+  - `name: ORBIT` · `version: 1.0.0` · `minimum_chrome_version: 116`
+  - permissions: sidePanel, storage, tabs, tabGroups, scripting, activeTab, clipboardWrite,
+    declarativeNetRequestWithHostAccess
+  - `host_permissions`: the four model APIs and `html.duckduckgo.com` only
+  - `optional_host_permissions`: `<all_urls>`, granted per site at task start, never at install
+- **Store copy**: `LISTING.md` (name, summary, description, category, screenshot order).
+- **Privacy policy**: `docs/privacy.md`.
+- **Review answers**: `PERMISSION-JUSTIFICATIONS.md`.
+- **Screenshots**: five 1280x800 slides in `screenshots/`.
 
-1. **Register.** https://chrome.google.com/webstore/devconsole — one-time **$5** fee,
-   email verified, 2FA on the account. A publisher name is public, so use the brand
-   (ORBIT) rather than a personal name if that is the intent.
-2. **Host the privacy policy** at a public URL. A GitHub repo file works:
-   push `store/PRIVACY.md` and use the blob URL, or turn on Pages and use the page URL.
-   Chrome rejects a submission with no reachable policy URL.
-3. **Upload** `.output/orbit-0.3.0-chrome.zip` in the dashboard.
-4. **Fill the listing** from `LISTING.md`; upload the five images in `screenshots/`
-   (already 1280×800).
-5. **Fill the privacy tab** from `PERMISSION-JUSTIFICATIONS.md`: single purpose,
-   one justification per permission, the data-usage radio buttons, and the third-party
-   disclosure (page content goes to the user's own model provider).
-6. **Choose visibility.** Public, all regions, free. Unlisted is the safer first run if
-   you want to test installs before anyone can find it.
-7. **Submit for review.** Typically 1–5 days; broad optional host permissions can add
-   a round of questions from a human reviewer.
+## What is left, in order
 
-## Before you upload
+1. **Register** at https://chrome.google.com/webstore/devconsole
+   One-time **$5**, verified email, 2FA. The publisher name is public: use ORBIT.
+2. **Publish the privacy policy** and copy its URL.
+   `docs/privacy.md` is on `main`; the URL is
+   `https://github.com/srikanthamsa/orbit/blob/main/docs/privacy.md`
+   A GitHub blob URL is acceptable. A Pages URL looks better in the listing.
+3. **Upload** `.output/orbit-1.0.0-chrome.zip`.
+4. **Listing tab** from `LISTING.md`; upload the five slides in order 01 to 05.
+5. **Privacy tab** from `PERMISSION-JUSTIFICATIONS.md`:
+   - single purpose
+   - one justification per permission
+   - data usage radios: page content is processed, never sold, never used for anything
+     except answering the user's task
+   - third-party disclosure: page content is sent to the model provider the user configured
+6. **Visibility**: Unlisted for the first submission, then switch to Public once it is approved
+   and you have installed it yourself from the store.
+7. **Submit**. 1 to 5 days. Broad optional host permissions can add one round of reviewer
+   questions; the answers are already written.
 
-- Consider `npm version 1.0.0 --no-git-tag-version`. A store listing showing 0.3.0
-  reads as a beta to anyone browsing.
-- The manifest is already review-friendly: **no `<all_urls>` in `host_permissions`** —
-  site access is optional and requested per origin at task start. Keep it that way;
-  moving it into `host_permissions` is the single most common cause of rejection for
-  browser agents.
-- Nothing loads code from a server: the "remote code" answer is a clean No.
-- `minimum_chrome_version` is 116 for the side panel API.
+## After approval
 
-## After it is live
-
-- Every later release: bump the version, `npx wxt zip`, upload the new zip. The listing
-  and privacy answers persist.
-- Keep `.output/` out of git; `store/` is fine to commit.
+- Install from the store yourself and run one task on a real site.
+- Then flip to Public and tag `v1.0.1` only if a fix is needed.
+- Every later release: bump `package.json`, `npm run zip`, upload. The listing, privacy
+  answers and screenshots persist between versions.
