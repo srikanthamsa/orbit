@@ -57,13 +57,13 @@ Most browser AI stops at "here is what you could do." ORBIT does the thing — t
 
 ## Screenshots
 
-| Type the outcome | Watch it work | Approve what matters |
+| Say what you need | Watch every move | Approve what matters |
 | --- | --- | --- |
-| ![Home](store/screenshots/01-home.png) | ![Running a task](store/screenshots/02-working.png) | ![Approval](store/screenshots/03-approval.png) |
+| ![Home](store/screenshots/01-hero.png) | ![Running a task](store/screenshots/02-watching.png) | ![Approval](store/screenshots/04-approval.png) |
 
-| Answers you can read | Your model, your key |
+| Answers you can read | Your key, your browser |
 | --- | --- |
-| ![Answer with a table and a chart](store/screenshots/04-answer.png) | ![Bring your own model](store/screenshots/05-model.png) |
+| ![Answer with a table and a chart](store/screenshots/03-answer.png) | ![Bring your own model](store/screenshots/05-trust.png) |
 
 ## Install
 

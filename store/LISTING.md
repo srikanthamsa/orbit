@@ -77,11 +77,11 @@ Visibility: Public. Regions: all. Pricing: free.
 
 ## Screenshots (upload in this order)
 
-    01-home.png      Type the outcome. It does the work.
-    02-working.png   You watch it work.
-    03-approval.png  It asks before anything that matters.
-    04-answer.png    Tables. Charts. Real answers.
-    05-model.png     Bring your own model.
+    01-hero.png      Type the outcome. It does the work.
+    02-watching.png   You watch it work.
+    04-approval.png  It asks before anything that matters.
+    03-answer.png    Tables. Charts. Real answers.
+    05-trust.png     Bring your own model.
 
 All five are 1280 x 800, the store's preferred size. Regenerate with
 `node scripts/store-shots.mjs` while `npm run preview` is running.
