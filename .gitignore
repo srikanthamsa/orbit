@@ -9,3 +9,7 @@ dist
 .env.*
 preview/dist
 .commandcode
+.agents/
+.claude/
+agent/
+skills-lock.json
