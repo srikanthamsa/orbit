@@ -502,6 +502,48 @@ export function StepMark({ status }: { status: 'success' | 'failed' | 'rejected'
 }
 
 
+
+/* -------------------------------------------------------------------------- */
+/* Agent phase                                                                */
+/* -------------------------------------------------------------------------- */
+
+export type AgentPhase = 'thinking' | 'working' | 'waiting' | 'paused';
+
+const PHASE_COPY: Record<AgentPhase, string> = {
+  thinking: 'Thinking',
+  working: 'Working',
+  waiting: 'Waiting on you',
+  paused: 'Paused',
+};
+
+/**
+ * What the agent is doing this second. Deliberately the only moving thing on a
+ * running screen, so the eye lands on it and nothing competes.
+ */
+export function AgentPhaseLabel({ phase, detail }: { phase: AgentPhase; detail?: string }) {
+  const active = phase === 'thinking' || phase === 'working';
+  // The header already names the state, so while acting this line says *what*
+  // is happening instead of repeating "Working".
+  const label = phase === 'working' && detail ? detail : PHASE_COPY[phase];
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="phase-dots" aria-hidden data-live={active ? '' : undefined}>
+        <i />
+        <i />
+        <i />
+      </span>
+      <span
+        className={
+          active ? 'phase-shimmer min-w-0 truncate text-caption' : 'min-w-0 truncate text-caption text-muted'
+        }
+        title={label}
+      >
+        {phase === 'thinking' ? `${label}…` : label}
+      </span>
+    </span>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* Rich text                                                                  */
 /* -------------------------------------------------------------------------- */

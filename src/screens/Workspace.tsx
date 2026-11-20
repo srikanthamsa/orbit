@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { followUpTask, useAgentStore } from '@/stores/agent';
 import { formatUsd, hostnameOf } from '@/lib/utils';
-import { Button, RichText, Spinner, StatusPill, StepMark, actionIcon } from '@/components/ui';
+import { AgentPhaseLabel, Button, RichText, StatusPill, StepMark, actionIcon } from '@/components/ui';
 import { AnswerBlocks } from '@/components/AnswerBlocks';
 
 function clock(ts: number): string {
@@ -118,12 +118,11 @@ export function Workspace() {
           <Button size="sm" variant="danger" onClick={stop}>
             <Square size={11} /> Stop
           </Button>
-          <span className="ml-auto text-micro text-faint">
-            {awaitingDecision
-              ? 'Waiting on you'
-              : paused
-                ? 'Paused between actions'
-                : 'Watching every action'}
+          <span className="ml-auto">
+            <AgentPhaseLabel
+              phase={awaitingDecision ? 'waiting' : paused ? 'paused' : currentAction ? 'working' : 'thinking'}
+              detail={busy && !paused && !awaitingDecision ? currentAction ?? undefined : undefined}
+            />
           </span>
         </div>
       ) : null}
@@ -140,12 +139,6 @@ export function Workspace() {
           </span>
           <span className="shrink-0 text-micro text-faint">{live ? hostnameOf(live.url) : ''}</span>
         </div>
-        {currentAction ? (
-          <div className="mt-1.5 flex items-center gap-1.5 text-caption text-accent">
-            <Spinner size={11} />
-            <span className="truncate">{currentAction}</span>
-          </div>
-        ) : null}
         {screenshot ? (
           <button
             onClick={() => setLightbox(true)}
