@@ -1,4 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'wxt';
+
+const { version } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { version: string };
 
 // The E2E build adds <all_urls> so a headless test can drive a local page
 // without an interactive host-permission prompt. Never shipped.
@@ -12,7 +17,7 @@ export default defineConfig({
     name: 'ORBIT — Browser Agent',
     short_name: 'ORBIT',
     description: 'An autonomous AI browser agent. Bring your own key. Your browser, your intelligence.',
-    version: '0.3.0',
+    version,
     permissions: ['sidePanel', 'storage', 'tabs', 'tabGroups', 'scripting', 'activeTab', 'clipboardWrite'],
     host_permissions: [
       'https://api.openai.com/*',

@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Verify the tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+      - run: npm run compile
+      - run: npm test
+      - run: npm run build
+      - run: npm run zip
+
+      - name: Check the package is loadable
+        run: |
+          set -euo pipefail
+          zip=$(ls .output/orbit-*-chrome.zip)
+          tmp=$(mktemp -d)
+          unzip -q "$zip" -d "$tmp"
+          node -e "
+            const m = require('$tmp/manifest.json');
+            if (m.manifest_version !== 3) throw new Error('not MV3');
+            if (!m.side_panel) throw new Error('missing side panel');
+            console.log('package ok:', m.name, m.version);
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbit-zip
+          path: .output/orbit-*-chrome.zip
+
+      - name: Publish the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" .output/orbit-*-chrome.zip --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" .output/orbit-*-chrome.zip \
+              --title "ORBIT $GITHUB_REF_NAME" --generate-notes
+          fi

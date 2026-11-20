@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/srikanthamsa/orbit/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/badge/download-latest-22c55e?style=flat" /></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-5a9bff?style=flat" /></a>
   <a href="https://github.com/srikanthamsa/orbit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/srikanthamsa/orbit/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/srikanthamsa/orbit"><img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-5a9bff?style=flat" /></a>
@@ -58,23 +59,24 @@ Most browser AI stops at "here is what you could do." ORBIT does the thing — t
 
 ## Install
 
-ORBIT is not on the Chrome Web Store yet. A local build takes under a minute.
+ORBIT is not on the Chrome Web Store yet. Download a release, unzip it, and load the folder — no Node needed.
+
+1. Download `orbit-<version>-chrome.zip` from [the latest release](https://github.com/srikanthamsa/orbit/releases/latest) and unzip it. Keep the folder where it is; the browser loads the extension from that path on every launch.
+2. Open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select the unzipped folder.
+3. Pin ORBIT from the puzzle-piece menu and click its icon — the side panel opens next to your current tab.
+
+Edge and Brave use `edge://extensions` and `brave://extensions`. Dia runs the same build. Per-browser steps, updates, uninstall and troubleshooting are in [docs/install.md](docs/install.md).
+
+To build it yourself with Node 20+:
 
 ```bash
 git clone https://github.com/srikanthamsa/orbit.git
 cd orbit
 npm install
-npm run build
+npm run zip
 ```
 
-Then in Chrome:
-
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Choose **Load unpacked** and select `.output/chrome-mv3`.
-4. Pin ORBIT and click its icon — the side panel opens next to your current tab.
-
-Requires **Chrome 116+**, **Node 20+** to build, and **Manifest V3**. If you are updating an existing install, reload the extension, refresh the controlled tab, and reopen the side panel.
+The zip and the unpacked build both land in `.output/`. Use `npm run dev` for hot reload. Requires **Chrome 116+** and **Manifest V3**. If you are updating an existing install, reload the extension, refresh the controlled tab, and reopen the side panel.
 
 ## Configure a model
 

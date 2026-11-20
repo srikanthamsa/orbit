@@ -67,7 +67,7 @@ npm run shots              # terminal 2
 
 ## Release checklist
 
-1. `npm run compile && npm test && npm run smoke`
-2. Bump `version` in `package.json` and `wxt.config.ts`.
-3. `npm run build && npm run zip`
-4. Attach the zip to a GitHub release, note permission changes and migration notes.
+1. `npm run compile && npm test && npm run smoke` (the smoke test needs the Playwright Chromium in the macOS cache)
+2. Bump `version` in `package.json`. The manifest reads it from there.
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`. The Release workflow checks the tag against `package.json`, runs the tests, builds the zip, verifies `manifest.json` is at its root, and attaches it to a GitHub release.
+4. Read the generated release notes and add permission changes or migration notes by hand.
