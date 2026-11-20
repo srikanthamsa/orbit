@@ -37,10 +37,10 @@ export function originPattern(url: string): string | null {
 
 export function greeting(now = new Date()): string {
   const h = now.getHours();
-  if (h < 5) return 'Still up?';
-  if (h < 12) return 'Good morning.';
-  if (h < 17) return 'Good afternoon.';
-  return 'Good evening.';
+  if (h < 5) return 'Still up, mortal?';
+  if (h < 12) return 'Good morning, mortal.';
+  if (h < 17) return 'Good afternoon, mortal.';
+  return 'Good evening, mortal.';
 }
 
 export function timeAgo(ts: number, now = Date.now()): string {

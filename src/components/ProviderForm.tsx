@@ -1,12 +1,23 @@
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, X } from 'lucide-react';
 import type { ProviderConfig, ProviderId } from '@/types';
 import { useAgentStore } from '@/stores/agent';
 import { requestHostAccessForBaseUrl } from '@/browser/permissions';
-import { uid } from '@/lib/utils';
-import { Button, Field, inputClass, providerName } from './ui';
+import { cn, uid } from '@/lib/utils';
+import { Button, Field, IconButton, Input, Select, providerName } from './ui';
+import { ConnectedOverlay } from './ConnectedOverlay';
 
 const PROVIDERS: ProviderId[] = ['openai', 'anthropic', 'gemini', 'deepseek', 'compatible'];
+
+// Says what the field accepts, in the user's words — the chips below are shortcuts,
+// not the whole list, and "id" is provider jargon.
+const MODEL_HINT: Record<ProviderId, string> = {
+  openai: 'Presets or any GPT model',
+  anthropic: 'Presets or any Claude model',
+  gemini: 'Presets or any Gemini model',
+  deepseek: 'flash: vision + 1M · v4-pro: text',
+  compatible: 'Match the endpoint’s name',
+};
 
 const PRESETS: Record<ProviderId, string[]> = {
   openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-5'],
@@ -18,6 +29,7 @@ const PRESETS: Record<ProviderId, string[]> = {
 
 export function ProviderForm({ initial, onClose }: { initial?: ProviderConfig; onClose: () => void }) {
   const saveProvider = useAgentStore((s) => s.saveProvider);
+  const runTest = useAgentStore((s) => s.runTest);
   const hasKey = useAgentStore((s) => s.hasKey);
   const [provider, setProvider] = useState<ProviderId>(initial?.provider ?? 'openai');
   const [model, setModel] = useState(initial?.model ?? PRESETS.openai[0]);
@@ -29,6 +41,7 @@ export function ProviderForm({ initial, onClose }: { initial?: ProviderConfig; o
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState<ProviderConfig | null>(null);
   const existingKey = initial ? hasKey[initial.id] : false;
 
   const changeProvider = (next: ProviderId) => {
@@ -68,7 +81,17 @@ export function ProviderForm({ initial, onClose }: { initial?: ProviderConfig; o
         visionOverride: vision === 'auto' ? undefined : vision === 'yes',
       };
       await saveProvider(config, apiKey.trim() || undefined);
-      onClose();
+
+      // Verify the key the moment it is stored, so a wrong one never reaches a task.
+      await runTest(config.id);
+      const result = useAgentStore.getState().testStates[config.id];
+      if (result?.status === 'ok') {
+        setConnected(config);
+      } else {
+        setError(
+          `Saved, but the connection test failed. ${result?.message ?? 'The endpoint did not respond.'}`,
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -77,129 +100,145 @@ export function ProviderForm({ initial, onClose }: { initial?: ProviderConfig; o
   };
 
   return (
-    <div className="card animate-rise mt-2 space-y-3 p-3.5">
+    <div
+      className={cn('animate-rise mt-2 rounded-md border border-line bg-surface p-3')}
+    >
       <div className="flex items-center justify-between">
-        <h3 className="text-[13px] font-medium">{initial ? 'Edit model' : 'Add a model'}</h3>
-        <button onClick={onClose} className="text-[11px] text-[var(--muted)] hover:text-[var(--text)]">
-          Cancel
-        </button>
+        <h3 className="flex items-center gap-1.5 text-label font-medium text-fg">
+          {initial ? 'Edit model' : 'Add a model'}
+        </h3>
+        <IconButton label="Close" onClick={onClose}>
+          <X size={13} />
+        </IconButton>
       </div>
 
-      <Field label="Provider" htmlFor="provider">
-        <select
-          id="provider"
-          value={provider}
-          onChange={(e) => changeProvider(e.target.value as ProviderId)}
-          className={inputClass}
+      <div className="mt-2 space-y-2.5">
+        <Field label="Provider" htmlFor="provider">
+          <Select
+            id="provider"
+            value={provider}
+            onChange={(e) => changeProvider(e.target.value as ProviderId)}
+          >
+            {PROVIDERS.map((id) => (
+              <option key={id} value={id}>
+                {providerName(id)}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <Field
+          label="Model"
+          hint={MODEL_HINT[provider]}
+          htmlFor="model"
         >
-          {PROVIDERS.map((id) => (
-            <option key={id} value={id}>
-              {providerName(id)}
-            </option>
-          ))}
-        </select>
-      </Field>
-
-      <Field
-        label="Model"
-        hint={
-          provider === 'deepseek'
-            ? 'flash: vision + 1M; v4-pro: text'
-            : 'Exact model id'
-        }
-        htmlFor="model"
-      >
-        <input
-          id="model"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          placeholder="e.g. gpt-4o-mini"
-          spellCheck={false}
-          className={inputClass}
-        />
-      </Field>
-      {PRESETS[provider].length > 0 ? (
-        <div className="-mt-1 flex flex-wrap gap-1">
-          {PRESETS[provider].map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => setModel(preset)}
-              className={`rounded-full border px-2 py-0.5 text-[10.5px] transition-colors ${
-                model === preset
-                  ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                  : 'border-[var(--border)] text-[var(--faint)] hover:text-[var(--text)]'
-              }`}
-            >
-              {preset}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {provider === 'compatible' ? (
-        <Field label="Base URL" hint="OpenAI-compatible" htmlFor="baseUrl">
-          <input
-            id="baseUrl"
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://api.example.com/v1"
+          <Input
+            id="model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={`e.g. ${PRESETS[provider][0] ?? 'your-model-name'}`}
             spellCheck={false}
-            className={inputClass}
           />
         </Field>
-      ) : null}
 
-      <Field
-        label="API key"
-        hint={existingKey ? 'Saved — enter only to replace' : 'Stored locally'}
-        htmlFor="apiKey"
-      >
-        <div className="relative">
-          <input
-            id="apiKey"
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={existingKey ? '••••••••••••' : 'Paste your key'}
-            autoComplete="off"
-            spellCheck={false}
-            className={`${inputClass} pr-9`}
-          />
-          <button
-            type="button"
-            aria-label={showKey ? 'Hide key' : 'Show key'}
-            onClick={() => setShowKey((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--faint)] hover:text-[var(--text)]"
-          >
-            {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
-        </div>
-      </Field>
+        {PRESETS[provider].length > 0 ? (
+          <div className="-mt-1 flex flex-wrap gap-1">
+            {PRESETS[provider].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setModel(preset)}
+                className={cn(
+                  'focus-ring-inset rounded-sm border px-1.5 py-0.5 text-micro transition-colors',
+                  model === preset
+                    ? 'border-accent-line bg-accent-tint text-accent'
+                    : 'border-transparent text-faint hover:bg-raised hover:text-fg',
+                )}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
-      <Field label="Vision" hint="Screenshot understanding" htmlFor="vision">
-        <select
-          id="vision"
-          value={vision}
-          onChange={(e) => setVision(e.target.value as 'auto' | 'yes' | 'no')}
-          className={inputClass}
+        {provider === 'compatible' ? (
+          <Field label="Base URL" hint="OpenAI-compatible" htmlFor="baseUrl">
+            <Input
+              id="baseUrl"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://api.example.com/v1"
+              spellCheck={false}
+            />
+          </Field>
+        ) : null}
+
+        <Field
+          label="API key"
+          hint={existingKey ? 'Saved — enter only to replace' : 'Stored locally'}
+          htmlFor="apiKey"
         >
-          <option value="auto">Auto-detect</option>
-          <option value="yes">Supported</option>
-          <option value="no">Text only</option>
-        </select>
-      </Field>
+          <span className="relative block">
+            <Input
+              id="apiKey"
+              type={showKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={existingKey ? '••••••••••••' : 'Paste your key'}
+              autoComplete="off"
+              spellCheck={false}
+              className="pr-8"
+            />
+            <button
+              type="button"
+              aria-label={showKey ? 'Hide key' : 'Show key'}
+              onClick={() => setShowKey((v) => !v)}
+              className="focus-ring absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-sm text-faint transition-colors hover:text-fg"
+            >
+              {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
+            </button>
+          </span>
+        </Field>
 
-      {error ? <p className="text-[11.5px] leading-snug text-[var(--danger)]">{error}</p> : null}
+        <Field label="Vision" hint="Screenshot understanding" htmlFor="vision">
+          <Select
+            id="vision"
+            value={vision}
+            onChange={(e) => setVision(e.target.value as 'auto' | 'yes' | 'no')}
+          >
+            <option value="auto">Auto-detect</option>
+            <option value="yes">Supported</option>
+            <option value="no">Text only</option>
+          </Select>
+        </Field>
+      </div>
 
-      <div className="flex justify-end gap-2 pt-0.5">
-        <Button size="sm" onClick={onClose}>
+      {error ? (
+        <p className="mt-2 rounded-sm border border-danger-line bg-danger-tint px-2 py-1.5 text-caption leading-[1.45] text-danger">
+          {error}
+        </p>
+      ) : (
+        <p className="mt-2 text-micro leading-[1.5] text-faint">
+          Saving tests the connection.
+        </p>
+      )}
+
+      <div className="mt-2.5 flex justify-end gap-1.5">
+        <Button size="sm" variant="ghost" onClick={onClose}>
           Cancel
         </Button>
         <Button size="sm" variant="primary" loading={saving} onClick={() => void submit()}>
-          Save
+          {saving ? 'Testing…' : 'Save'}
         </Button>
       </div>
+
+      {connected ? (
+        <ConnectedOverlay
+          provider={providerName(connected.provider)}
+          model={connected.model}
+          onDone={onClose}
+        />
+      ) : null}
     </div>
   );
 }

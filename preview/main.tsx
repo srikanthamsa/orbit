@@ -235,9 +235,155 @@ if (demo === 'workspace') {
     summary:
       'Top five wireless headphones under ₹15,000:\n\n1. Sony WH-CH720N — ₹8,990, 4.3★, 35h battery, 192g\n2. JBL Tune 770NC — ₹6,999, 4.2★, 70h battery\n3. boAt Nirvana Ion — ₹1,499, 4.1★, 120h with case\n4. OnePlus Bullets Wireless Z2 — ₹1,799, 4.2★, 30h\n5. Noise Buds VS104 — ₹1,199, 4.0★, 45h\n\nSony leads on comfort and ANC; JBL wins on battery; boAt and Noise are the budget picks. Prices from Amazon.in today.',
   });
+} else if (demo === 'firstrun') {
+  useAgentStore.setState({
+    hydrated: true,
+    route: 'home',
+    providers: [],
+    hasKey: {},
+    history: [],
+  });
+} else if (demo === 'nokey') {
+  useAgentStore.setState({
+    hydrated: true,
+    route: 'home',
+    providers: [provider],
+    hasKey: {},
+    history: [],
+    settings: { ...useAgentStore.getState().settings, activeProviderId: provider.id },
+  });
+} else if (demo === 'empty') {
+  seedHome();
+  useAgentStore.setState({ history: [], checkpoint: null });
+} else if (demo === 'done-markdown') {
+  seedWorkspace({
+    task: { ...task, status: 'completed', objective: 'what ids does Road Redemption have' },
+    currentAction: null,
+    summary:
+      '**Road Redemption** has six DLC app IDs on SteamDB.\n\n| App ID | Name | Released |\n|---|---|---|\n| 1180010 | Revengers Assemble | 6 Feb 2020 |\n| 727440 | Developer Commentary | 3 Oct 2017 |\n| 727050 | Early Prototype | 3 Oct 2017 |\n\n- App IDs only: 1180010, 727440, 727050\n- The `524890` entry is the multiplayer alpha depot',
+  });
+} else if (demo === 'genui') {
+  seedWorkspace({
+    task: { ...task, status: 'completed', objective: 'compare five wireless headphones under 15,000' },
+    currentAction: null,
+    summary: 'Sony leads on comfort and noise cancelling, JBL on battery. Prices from Amazon.in today.',
+    summaryBlocks: [
+      {
+        type: 'table',
+        title: 'Headphones under ₹15,000',
+        columns: ['Model', 'Price', 'Rating', 'Battery'],
+        rows: [
+          ['Sony WH-CH720N', '₹8,990', '4.3', '35 h'],
+          ['JBL Tune 770NC', '₹6,999', '4.2', '70 h'],
+          ['boAt Nirvana Ion', '₹1,499', '4.1', '120 h'],
+          ['OnePlus Bullets Z2', '₹1,799', '4.2', '30 h'],
+          ['Noise Buds VS104', '₹1,199', '4.0', '45 h'],
+        ],
+      },
+      {
+        type: 'chart',
+        title: 'Battery life',
+        chart: 'bar',
+        unit: ' h',
+        data: [
+          { label: 'Sony', value: 35 },
+          { label: 'JBL', value: 70 },
+          { label: 'boAt', value: 120 },
+          { label: 'OnePlus', value: 30 },
+          { label: 'Noise', value: 45 },
+        ],
+      },
+      {
+        type: 'stats',
+        items: [
+          { label: 'Cheapest', value: '₹1,199', hint: 'Noise Buds VS104' },
+          { label: 'Longest battery', value: '120 h', hint: 'boAt Nirvana Ion' },
+        ],
+      },
+    ],
+  });
+} else if (demo === 'genui-b') {
+  seedWorkspace({
+    task: { ...task, status: 'completed', objective: 'what ids does Road Redemption have' },
+    currentAction: null,
+    summary: 'Six DLC entries, three of them with their own store page.',
+    summaryBlocks: [
+      {
+        type: 'chart',
+        title: 'DLC releases by year',
+        chart: 'line',
+        data: [
+          { label: '2017', value: 4 },
+          { label: '2018', value: 1 },
+          { label: '2020', value: 1 },
+        ],
+      },
+      {
+        type: 'chart',
+        chart: 'donut',
+        data: [
+          { label: 'Own store page', value: 3 },
+          { label: 'Depot only', value: 3 },
+        ],
+      },
+      {
+        type: 'links',
+        items: [
+          { label: 'Road Redemption — DLC list', url: 'https://steamdb.info/app/300380/dlc/' },
+          { label: 'Steam store page', url: 'https://store.steampowered.com/app/300380/' },
+        ],
+      },
+    ],
+  });
+} else if (demo === 'conversation') {
+  seedWorkspace({
+    task: {
+      ...task,
+      status: 'completed',
+      objective: 'give me all the DLC app ids for Road Redemption',
+      turns: [
+        { text: 'just the ids, nothing else', at: now - 1000 * 35 },
+        { text: 'which of those are actual store pages?', at: now - 1000 * 12 },
+      ],
+    },
+    currentAction: null,
+    summary: 'Three of the six have their own store page: 1180010, 727050 and 727440.',
+  });
+} else if (demo === 'limit') {
+  seedWorkspace({
+    task: {
+      ...task,
+      status: 'failed',
+      currentStep: 20,
+      maxSteps: 20,
+      objective: 'does it clean pet hair effectively?',
+    },
+    currentAction: null,
+    error: 'Reached the 20-step limit. Review what happened, then continue or stop.',
+  });
 } else if (demo === 'settings') {
   seedHome();
   useAgentStore.setState({ route: 'settings' });
+} else if (demo === 'connect' || demo === 'connect-fail') {
+  // Connection flow without a network: the provider list starts empty and the
+  // connection test resolves locally so the success / failure states are stable.
+  seedHome();
+  const fail = demo === 'connect-fail';
+  useAgentStore.setState({
+    route: 'settings',
+    providers: [],
+    settings: { ...useAgentStore.getState().settings, activeProviderId: undefined },
+    runTest: async (id: string) => {
+      useAgentStore.setState({
+        testStates: {
+          ...useAgentStore.getState().testStates,
+          [id]: fail
+            ? { status: 'error', message: 'Invalid API key (401). Check the key and try again.' }
+            : { status: 'ok', message: 'Connected' },
+        },
+      });
+    },
+  });
 } else if (demo === 'light') {
   seedHome();
   useAgentStore.setState({

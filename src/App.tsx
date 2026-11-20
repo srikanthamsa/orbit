@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useAgentStore } from '@/stores/agent';
 import { Header } from '@/components/Header';
@@ -27,6 +28,7 @@ export default function App() {
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative flex h-full flex-col">
       <Header />
       <main className="relative min-h-0 flex-1">
@@ -34,12 +36,12 @@ export default function App() {
       </main>
       {error && route !== 'task' ? (
         <div className="pointer-events-none absolute inset-x-3 bottom-3 z-40 animate-rise">
-          <div className="pointer-events-auto flex items-start gap-2 rounded-[12px] border border-[rgba(255,107,107,0.3)] bg-[var(--bg-elev)] p-3 shadow-[var(--shadow)]">
-            <p className="flex-1 text-[11.5px] leading-relaxed text-[var(--text)]">{error}</p>
+          <div className="pointer-events-auto flex items-start gap-2 rounded-md border border-danger-line bg-field p-2.5 shadow-pop">
+            <p className="flex-1 text-caption leading-[1.5] text-fg">{error}</p>
             <button
               onClick={dismissError}
               aria-label="Dismiss"
-              className="text-[var(--faint)] transition-colors hover:text-[var(--text)]"
+              className="text-faint transition-colors hover:text-fg"
             >
               <X size={13} />
             </button>
@@ -47,5 +49,6 @@ export default function App() {
         </div>
       ) : null}
     </div>
+    </MotionConfig>
   );
 }
