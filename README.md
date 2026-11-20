@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="ORBIT — an autonomous AI browser agent running in the Chrome side panel" width="100%" />
+  <img src="docs/screenshots/hero.png" alt="ORBIT running in the Chrome side panel" width="100%" />
 </p>
 
 <p align="center">
   <a href="https://github.com/srikanthamsa/orbit/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/badge/download-latest-22c55e?style=flat" /></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-5a9bff?style=flat" /></a>
   <a href="https://github.com/srikanthamsa/orbit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/srikanthamsa/orbit/actions/workflows/ci.yml/badge.svg" /></a>
-  <a href="https://github.com/srikanthamsa/orbit"><img alt="Version 0.3.0" src="https://img.shields.io/badge/version-0.3.0-5a9bff?style=flat" /></a>
+  <a href="https://github.com/srikanthamsa/orbit"><img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-5a9bff?style=flat" /></a>
   <img alt="Chrome 116+" src="https://img.shields.io/badge/Chrome-116%2B-4285F4?style=flat&logo=googlechrome&logoColor=white" />
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-5a9bff?style=flat" />
-  <a href="docs/development.md#testing-conventions"><img alt="62 tests passing" src="https://img.shields.io/badge/tests-62%20passing-22c55e?style=flat" /></a>
+  <a href="docs/development.md#testing-conventions"><img alt="76 tests passing" src="https://img.shields.io/badge/tests-76%20passing-22c55e?style=flat" /></a>
   <a href="CONTRIBUTING.md"><img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-5a9bff?style=flat" /></a>
   <a href="https://github.com/srikanthamsa/orbit/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/srikanthamsa/orbit?style=flat&color=5a9bff&logo=github&logoColor=white" /></a>
 </p>
@@ -41,6 +41,9 @@ Most browser AI stops at "here is what you could do." ORBIT does the thing — t
 ## What it can do
 
 - **Observation built for real pages.** A compact accessibility tree of landmarks, headings, dialogs, forms and controls, plus up to 240 interactive elements. It reaches open shadow roots, same-origin frames, offscreen controls, portals and canvas-adjacent UI.
+- **Decides before it acts.** A site task — buy this, book that, my order, the options on this page — stays on the page. A general question ("does this vacuum pick up dog hair") becomes one background search before any clicking, because a spec sheet is not a review.
+- **Searches without touching your tab.** The web search runs from the extension and returns the top results to the model. The page you are on does not move, and the search is never a visible detour.
+- **Answers, not dumps.** A result comes back as a short answer, plus a sortable table, a bar/line/donut chart, stat tiles or links when the shape of the answer calls for one.
 - **Find, then act.** If the target is not obvious, the model can search the live element registry by label or role. `find` is read-only, returns stable element ids, and costs no approval.
 - **Batch compatible work.** 2–5 click/type/scroll steps execute in one model turn. A batch stops at the first failure, is capped at five actions, and may contain at most one content-sensitive step in normal approval mode.
 - **Human approval in code.** Submits, sends, purchases, deletions, transfers, Enter-in-a-form and new-site access pause for a decision. The decision is made by the policy module from the real target element, not by the model.
@@ -48,14 +51,19 @@ Most browser AI stops at "here is what you could do." ORBIT does the thing — t
 - **Visible autonomy.** Live page, current action, full timeline, token usage, estimated cost, pause, resume and stop.
 - **On-page control layer.** A page tag with Stop, a phantom cursor that names each action, and a violet inner glow that hides itself for screenshots and disappears when the run stops.
 - **ORBIT tab group.** The controlled tab is colour-coded blue (working), orange (needs input), grey (paused), green (done) or red (failed). User-created groups are never hijacked.
-- **Resumable by design.** State is checkpointed after every action. Close the panel and resume from Home; finished tasks keep a compact session that reopens from the recent list.
+- **One conversation, one row.** A follow-up continues the same task instead of starting a new one: your messages interleave with the agent's steps, and Recent keeps a single entry with the whole transcript.
+- **Resumable by design.** State is checkpointed after every action. Close the panel and resume from Home; a task stopped at its step limit continues from the last step with a fresh allowance.
 - **Any model, one protocol.** Four provider adapters and a compatible endpoint share the same typed `orbit_action` tool surface.
 
 ## Screenshots
 
-| Ask in plain language | Watch every step | Approve what matters |
+| Type the outcome | Watch it work | Approve what matters |
 | --- | --- | --- |
-| ![Home](docs/screenshots/home.png) | ![Workspace](docs/screenshots/workspace.png) | ![Approval](docs/screenshots/approval.png) |
+| ![Home](store/screenshots/01-home.png) | ![Running a task](store/screenshots/02-working.png) | ![Approval](store/screenshots/03-approval.png) |
+
+| Answers you can read | Your model, your key |
+| --- | --- |
+| ![Answer with a table and a chart](store/screenshots/04-answer.png) | ![Bring your own model](store/screenshots/05-model.png) |
 
 ## Install
 
@@ -153,7 +161,7 @@ Read [docs/security.md](docs/security.md) and [SECURITY.md](SECURITY.md) for the
 
 | Layer | Command | Evidence |
 | --- | --- | --- |
-| Unit + orchestrator | `npm run check` | 62 tests across schema, policy, prompt, providers, tabs and the agent loop |
+| Unit + orchestrator | `npm run check` | 76 tests across schema, policy, prompt, providers, web search, tabs and the agent loop |
 | Browser DOM probes | `npm run preview` → `?demo=domtest` | 27/27 checks: tree, find, shadow DOM, frames, offscreen controls, cross-realm typing, redaction |
 | Built extension | `npm run smoke` | Loads the production bundle in headless Chrome, checks the panel and storage |
 | End-to-end | `npm run e2e` | Real extension + real page + mocked model: find → batch → finish, page mutation, tab group, no key in prompts |
@@ -169,7 +177,11 @@ npm run build      # production bundle in .output/chrome-mv3
 npm run preview    # real side panel at http://localhost:5199
 npm run smoke      # headless extension boot test
 npm run e2e        # full loop against a local page
+node scripts/store-shots.mjs   # store + README screenshots (needs the preview server)
 ```
+
+Releases are cut from a tag: pushing `v*` runs the tests, builds the zip and publishes it as a
+GitHub release. Store listing assets and the privacy policy live in [store/](store/).
 
 ```
 src/

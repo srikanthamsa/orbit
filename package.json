@@ -1,6 +1,6 @@
 {
   "name": "orbit",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "An autonomous AI browser agent. Bring your own key.",
@@ -22,9 +22,13 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@tabler/icons-react": "^3.52.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^14.14.0",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.7.1",
     "zod": "^3.24.1",
     "zustand": "^5.0.2"
   },
