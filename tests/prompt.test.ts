@@ -88,6 +88,24 @@ describe('prompt building', () => {
     expect(message).toContain('INITIAL SNAPSHOT');
     expect(message).toContain('untrusted');
   });
+
+  it('carries follow-up context without polluting the objective line', () => {
+    const message = buildInitialMessage(
+      'just the ids',
+      snapshot,
+      'Previous objective: list the DLC\nPrevious result: a table of six rows',
+    );
+    expect(message).toContain('OBJECTIVE: just the ids');
+    expect(message).toContain('CONTEXT FROM THE PREVIOUS TASK:');
+    expect(message.indexOf('CONTEXT FROM')).toBeGreaterThan(message.indexOf('OBJECTIVE:'));
+    expect(message.indexOf('CONTEXT FROM')).toBeLessThan(message.indexOf('INITIAL SNAPSHOT'));
+  });
+
+  it('asks for a chat-style answer with no markdown', () => {
+    expect(SYSTEM_PROMPT).toContain('plain conversational prose');
+    expect(SYSTEM_PROMPT).toContain('no tables');
+    expect(SYSTEM_PROMPT).toContain('Never narrate your process');
+  });
 });
 
 describe('redaction', () => {

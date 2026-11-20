@@ -66,3 +66,52 @@ describe('action protocol', () => {
 function parseActionSafe(value: unknown): boolean {
   return BrowserActionSchema.safeParse(value).success;
 }
+
+describe('answer blocks', () => {
+  const base = { type: 'finish', summary: 'Done.', reasoning: 'finished' };
+
+  it('keeps a valid table, chart, stats and links block', () => {
+    const action = parseAction({
+      ...base,
+      ui: [
+        { type: 'table', columns: ['Model', 'Price'], rows: [['Sony', '8990'], ['JBL', '6999']] },
+        { type: 'chart', chart: 'bar', data: [{ label: 'Sony', value: 8990 }, { label: 'JBL', value: 6999 }] },
+        { type: 'stats', items: [{ label: 'Cheapest', value: '₹6,999' }] },
+      ],
+    });
+    if (action.type !== 'finish') throw new Error('expected finish');
+    expect(action.ui).toHaveLength(3);
+    expect(action.ui?.[0].type).toBe('table');
+  });
+
+  it('drops a malformed block instead of failing the answer', () => {
+    const action = parseAction({
+      ...base,
+      ui: [
+        { type: 'chart', chart: 'pie', data: [] },
+        { type: 'links', items: [{ label: 'SteamDB', url: 'https://steamdb.info/app/300380/dlc/' }] },
+      ],
+    });
+    if (action.type !== 'finish') throw new Error('expected finish');
+    expect(action.ui).toHaveLength(1);
+    expect(action.ui?.[0].type).toBe('links');
+  });
+
+  it('returns no blocks when the answer has none', () => {
+    const action = parseAction(base);
+    if (action.type !== 'finish') throw new Error('expected finish');
+    expect(action.ui).toBeUndefined();
+  });
+});
+
+describe('search', () => {
+  it('parses a search action', () => {
+    const action = parseAction({ type: 'search', query: 'philips fc9352 pet hair', reasoning: 'page is the wrong place' });
+    if (action.type !== 'search') throw new Error('expected search');
+    expect(action.query).toBe('philips fc9352 pet hair');
+  });
+
+  it('describes a search in the step log', () => {
+    expect(describeAction({ type: 'search', query: 'pet hair' })).toBe('Search the web for “pet hair”');
+  });
+});

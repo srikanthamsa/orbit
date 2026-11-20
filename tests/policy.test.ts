@@ -86,3 +86,21 @@ describe('approval policy', () => {
     expect(finish).toBeNull();
   });
 });
+
+describe('search risk', () => {
+  it('does not ask for approval in sensitive mode', () => {
+    const risk = assessAction({
+      action: { type: 'search', query: 'pet hair vacuum' },
+      mode: 'sensitive',
+    });
+    expect(risk).toBeNull();
+  });
+
+  it('never asks, because a background read does not touch the page', () => {
+    const risk = assessAction({
+      action: { type: 'search', query: 'pet hair vacuum' },
+      mode: 'all',
+    });
+    expect(risk).toBeNull();
+  });
+});

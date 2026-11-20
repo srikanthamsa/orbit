@@ -14,19 +14,34 @@ export default defineConfig({
   outDir: e2e ? '.output-e2e' : '.output',
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'ORBIT — Browser Agent',
+    name: 'ORBIT',
     short_name: 'ORBIT',
     description: 'An autonomous AI browser agent. Bring your own key. Your browser, your intelligence.',
     version,
-    permissions: ['sidePanel', 'storage', 'tabs', 'tabGroups', 'scripting', 'activeTab', 'clipboardWrite'],
+    permissions: [
+      'sidePanel',
+      'storage',
+      'tabs',
+      'tabGroups',
+      'scripting',
+      'activeTab',
+      'clipboardWrite',
+      'declarativeNetRequestWithHostAccess',
+    ],
     host_permissions: [
       'https://api.openai.com/*',
       'https://api.anthropic.com/*',
       'https://generativelanguage.googleapis.com/*',
       'https://api.deepseek.com/*',
+      'https://html.duckduckgo.com/*',
       ...(e2e ? ['<all_urls>'] : []),
     ],
     optional_host_permissions: ['http://*/*', 'https://*/*', '<all_urls>'],
+    // The results endpoint refuses requests that carry an extension Origin
+    // header. Scoped to the search host and to fetches only.
+    declarative_net_request: {
+      rule_resources: [{ id: 'search', enabled: true, path: 'rules/search.json' }],
+    },
     side_panel: { default_path: 'sidepanel.html' },
     action: { default_title: 'Open ORBIT' },
     icons: {

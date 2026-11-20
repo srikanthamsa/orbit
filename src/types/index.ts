@@ -1,6 +1,6 @@
-import type { BrowserAction } from './actions';
+import type { AnswerBlock, BrowserAction } from './actions';
 
-export type { ActionType, BrowserAction } from './actions';
+export type { ActionType, AnswerBlock, BrowserAction } from './actions';
 
 export type AgentStatus =
   | 'idle'
@@ -12,9 +12,19 @@ export type AgentStatus =
   | 'failed'
   | 'cancelled';
 
+export interface TaskTurn {
+  /** What the user typed for this follow-up. */
+  text: string;
+  at: number;
+}
+
 export interface AgentTask {
   id: string;
   objective: string;
+  /** Follow-up messages in this conversation, oldest first. */
+  turns?: TaskTurn[];
+  /** Extra instructions for the model that are not part of the displayed objective. */
+  context?: string;
   status: AgentStatus;
   currentStep: number;
   maxSteps: number;
@@ -119,6 +129,8 @@ export interface TaskRecord {
   objective: string;
   status: AgentStatus;
   summary?: string;
+  blocks?: AnswerBlock[];
+  turns?: TaskTurn[];
   stepCount: number;
   createdAt: number;
   completedAt?: number;

@@ -31,9 +31,12 @@ export function orbitControlOverlay(update: ControlUpdate): void {
 
   const existing = document.getElementById(HOST_ID);
   if (update.state === 'off') {
-    g.__orbitControl?.destroy();
+    if (g.__orbitControl) {
+      g.__orbitControl.destroy();
+    } else {
+      existing?.remove();
+    }
     g.__orbitControl = undefined;
-    existing?.remove();
     return;
   }
 
@@ -76,7 +79,7 @@ export function orbitControlOverlay(update: ControlUpdate): void {
         font: 500 12px/1.3 system-ui, -apple-system, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      .glow { position: absolute; inset: 0; pointer-events: none; transition: opacity .2s ease; }
+      .glow { position: absolute; inset: 0; pointer-events: none; transition: opacity .45s cubic-bezier(.22,1,.36,1); }
       .layer { position: absolute; inset: 0; pointer-events: none; }
       .base {
         box-shadow:
@@ -332,6 +335,30 @@ export function orbitControlOverlay(update: ControlUpdate): void {
 
     let currentTabId = update.tabId;
     let toastTimer: ReturnType<typeof setTimeout> | undefined;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
+    let closing = false;
+
+    // The layer enters and leaves with a fade so the page never flashes a hard
+    // violet edge when a task starts or stops.
+    control.style.opacity = '0';
+    requestAnimationFrame(() => {
+      if (closing) return;
+      control.style.transition = 'opacity .45s cubic-bezier(.22,1,.36,1)';
+      control.style.opacity = '1';
+    });
+
+    const reopen = (): void => {
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = undefined;
+      }
+      if (!closing) return;
+      closing = false;
+      control.style.transition = 'none';
+      control.style.opacity = '1';
+      void control.offsetWidth;
+      control.style.transition = 'opacity .45s cubic-bezier(.22,1,.36,1)';
+    };
 
     const showToast = (message: string): void => {
       toast.textContent = message;
@@ -382,6 +409,7 @@ export function orbitControlOverlay(update: ControlUpdate): void {
 
     return {
       apply(next: ControlUpdate): void {
+        reopen();
         currentTabId = next.tabId;
         control.setAttribute('data-state', next.state);
         if (next.state !== 'hidden') {
@@ -411,8 +439,16 @@ export function orbitControlOverlay(update: ControlUpdate): void {
         }
       },
       destroy(): void {
-        if (toastTimer) clearTimeout(toastTimer);
-        host.remove();
+          if (toastTimer) clearTimeout(toastTimer);
+        if (closing) return;
+        closing = true;
+        control.setAttribute('data-state', 'hidden');
+        control.style.transition = 'opacity .34s cubic-bezier(.4,0,.2,1)';
+        control.style.opacity = '0';
+        closeTimer = setTimeout(() => {
+          closeTimer = undefined;
+          host.remove();
+        }, 360);
       },
     };
   }
@@ -433,7 +469,9 @@ export async function setControlOverlay(
       await chrome.scripting.executeScript({
         target: { tabId },
         func: orbitControlOverlay,
-        args: [{ tabId, ...update }],
+        args: [
+          { tabId, ...update },
+        ],
       });
     })
     .catch(() => {

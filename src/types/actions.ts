@@ -1,5 +1,57 @@
 import { z } from 'zod';
 
+/**
+ * Optional visual blocks the model can attach to a finish call. They are
+ * deliberately flat (arrays of strings and numbers) so every provider's tool
+ * schema subset can express them.
+ */
+export const AnswerBlockSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('table'),
+    title: z.string().max(80).optional(),
+    columns: z.array(z.string().min(1).max(40)).min(1).max(6),
+    rows: z
+      .array(z.array(z.string().max(120)).min(1).max(6))
+      .min(1)
+      .max(30),
+  }),
+  z.object({
+    type: z.literal('chart'),
+    title: z.string().max(80).optional(),
+    chart: z.enum(['bar', 'line', 'donut']),
+    unit: z.string().max(12).optional(),
+    data: z
+      .array(z.object({ label: z.string().min(1).max(40), value: z.number() }))
+      .min(2)
+      .max(12),
+  }),
+  z.object({
+    type: z.literal('stats'),
+    title: z.string().max(80).optional(),
+    items: z
+      .array(
+        z.object({
+          label: z.string().min(1).max(40),
+          value: z.string().min(1).max(24),
+          hint: z.string().max(40).optional(),
+        }),
+      )
+      .min(1)
+      .max(4),
+  }),
+  z.object({
+    type: z.literal('links'),
+    title: z.string().max(80).optional(),
+    items: z
+      .array(z.object({ label: z.string().min(1).max(60), url: z.string().url() }))
+      .min(1)
+      .max(8),
+  }),
+]);
+
+export type AnswerBlock = z.infer<typeof AnswerBlockSchema>;
+export type AnswerBlockType = AnswerBlock['type'];
+
 export const BatchStepSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('click'), elementId: z.string().min(1) }),
   z.object({ type: z.literal('type'), elementId: z.string().min(1), text: z.string() }),
@@ -13,6 +65,10 @@ export const BatchStepSchema = z.discriminatedUnion('type', [
 export const BrowserActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('navigate'), url: z.string().url() }),
   z.object({ type: z.literal('click'), elementId: z.string().min(1) }),
+  z.object({
+    type: z.literal('search'),
+    query: z.string().min(1).max(200),
+  }),
   z.object({
     type: z.literal('click_at'),
     x: z.number().min(0).max(1),
@@ -40,8 +96,22 @@ export const BrowserActionSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('finish'),
     summary: z.string().min(1),
+    // A malformed visual block must never invalidate a correct answer: each
+    // block is validated on its own and silently dropped when it does not fit.
+    ui: z
+      .array(z.unknown())
+      .max(3)
+      .optional()
+      .transform((raw) => {
+        const blocks = (raw ?? [])
+          .map((item) => AnswerBlockSchema.safeParse(item))
+          .flatMap((result) => (result.success ? [result.data] : []));
+        return blocks.length > 0 ? blocks : undefined;
+      }),
   }),
 ]);
+
+/** DuckDuckGo's no-JavaScript endpoint: a plain result list the agent can read. */
 
 export type BrowserAction = z.infer<typeof BrowserActionSchema>;
 export type BatchStep = z.infer<typeof BatchStepSchema>;
@@ -55,6 +125,8 @@ export function describeAction(action: BrowserAction, elementLabel?: string): st
   switch (action.type) {
     case 'navigate':
       return `Navigate to ${action.url}`;
+    case 'search':
+      return `Search the web for “${action.query}”`;
     case 'click':
       return elementLabel ? `Click “${elementLabel}”` : `Click ${action.elementId}`;
     case 'click_at':

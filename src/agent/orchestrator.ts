@@ -1,4 +1,5 @@
 import type {
+  AnswerBlock,
   AgentStatus,
   AgentStep,
   AgentTask,
@@ -18,6 +19,7 @@ import { requestAction } from '@/providers';
 import type { PromptStep } from '@/providers/types';
 import { captureSnapshot, pageActiveElement, pageClick, pageClickAt, pageElementAt, pageFind, pagePressKey, pageScroll, pageType } from '@/browser/dom';
 import { captureScreenshot } from '@/browser/screenshot';
+import { formatSearchResults, webSearch } from '@/browser/websearch';
 import { setControlOverlay } from '@/browser/control';
 import { focusTab, getTab, isRestrictedUrl, navigateAndSettle } from '@/browser/tabs';
 import { hasOriginAccess } from '@/browser/permissions';
@@ -55,6 +57,7 @@ export interface RunInput {
 export interface RunOutcome {
   status: 'completed' | 'failed' | 'cancelled';
   summary?: string;
+  blocks?: AnswerBlock[];
   error?: string;
   steps: AgentStep[];
   usage: Usage;
@@ -111,6 +114,21 @@ interface ExecutionResult {
 }
 
 async function executeAction(tabId: number, action: BrowserAction, signal: AbortSignal): Promise<ExecutionResult> {
+  if (action.type === 'search') {
+    try {
+      const results = await webSearch(action.query);
+      if (!results.length) {
+        return {
+          ok: false,
+          message: `The web search for “${action.query}” returned no results. Try a shorter query, or answer from the page.`,
+        };
+      }
+      return { ok: true, message: formatSearchResults(action.query, results) };
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'The web search failed.';
+      return { ok: false, message: `${detail} Answer from the page you can see, or finish.` };
+    }
+  }
   if (action.type === 'navigate') {
     await focusTab(tabId);
     await navigateAndSettle(tabId, action.url, signal, 600);
@@ -181,6 +199,43 @@ function toPromptSteps(steps: AgentStep[]): PromptStep[] {
     image: step.image,
     status: step.status,
   }));
+}
+
+/** URL identity without query noise, so link variants count as one page. */
+function pathKey(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+const QUESTION_OBJECTIVE =
+  /^(what|how|does|do|is|are|which|why|who|when|can|could|should|compare|tell me|find out)\b/i;
+
+function looksLikeQuestion(text: string): boolean {
+  const clean = text.trim();
+  return clean.endsWith('?') || QUESTION_OBJECTIVE.test(clean);
+}
+
+const SEARCH_ENGINE_HOST = /(^|\.)(duckduckgo|google|bing|brave|startpage|ecosia|search)\./i;
+
+/** A readable query for the fallback search when a site is a dead end. */
+function fallbackQuery(objective: string, pageTitle: string): string {
+  const cleaned = objective
+    .replace(/\?+$/, '')
+    .replace(
+      /^(what|how|does|do|is|are|which|why|who|when|can|could|should|tell me about|find out|compare)\b/i,
+      '',
+    )
+    .replace(/^(it|this|that|these|those|the|a|an)\b/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const product = truncate((pageTitle.split(/[|—–]/)[0] ?? '').replace(/\s+/g, ' ').trim(), 60);
+  const short = cleaned.split(' ').length <= 6;
+  const query = short && product ? `${product} ${cleaned}` : cleaned || product;
+  return truncate(query.trim() || objective.trim(), 90);
 }
 
 function findTarget(action: BrowserAction, snapshot: PageSnapshot): InteractiveElement | undefined {
@@ -302,6 +357,11 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
     let stallNotice: string | null = null;
     let stallCount = 0;
     let noProgressStreak = 0;
+    // Page-level memory survives the counters above: a model can bounce
+    // between two URLs forever and still look like it is "progressing".
+    const pathVisits = new Map<string, number>();
+    let searchFallbackUsed = false;
+    let revisitWarnings = 0;
     let lastActionSignature = '';
     let repeatedActions = 0;
     let scrollHistory: Array<'up' | 'down'> = [];
@@ -335,7 +395,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
 
       emit({ type: 'status', status: 'planning' });
 
-      if (!firstMessage) firstMessage = buildInitialMessage(task.objective, snapshot);
+      if (!firstMessage) firstMessage = buildInitialMessage(task.objective, snapshot, task.context);
       const initialMessage = steps.length === 0 ? firstMessage : `OBJECTIVE: ${task.objective}`;
 
       let outcome: Awaited<ReturnType<typeof requestAction>> | null = null;
@@ -370,7 +430,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
       if (action.type === 'finish') {
         const summary = truncate(action.summary.trim(), 6000);
         checkpoint('completed');
-        return { status: 'completed', summary, steps, usage };
+        return { status: 'completed', summary, blocks: action.ui, steps, usage };
       }
 
       const target = findTarget(action, snapshot);
@@ -419,20 +479,22 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
       let image: string | undefined;
       let approvedThisStep = false;
 
-      if (action.type === 'navigate' && !(await hasOriginAccess(action.url))) {
+      const destination = action.type === 'navigate' ? action.url : null;
+
+      if (destination && !(await hasOriginAccess(destination))) {
         emit({ type: 'status', status: 'waiting_for_approval' });
         const allowed = await controls.requestApproval({
           id: uid('approval'),
           kind: 'scope',
-          title: `Allow ORBIT on ${hostnameOf(action.url)}?`,
+          title: `Allow ORBIT on ${hostnameOf(destination)}?`,
           detail:
             'This task needs access to a new site. Chrome will show its own prompt next — choose Allow. Enable Settings → Browser access → Allow all sites to avoid these prompts.',
-          origin: action.url,
+          origin: destination,
           stepIndex: index,
         });
         emit({ type: 'status', status: 'running' });
         approvedThisStep = true;
-        if (!allowed || !(await hasOriginAccess(action.url))) {
+        if (!allowed || !(await hasOriginAccess(destination))) {
           status = 'rejected';
           resultMessage = 'The user did not allow access to the destination site. Choose another site or finish.';
         }
@@ -529,7 +591,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
               ' Enable Settings → Browser access → Allow all sites, or continue with DOM actions only.';
           }
         }
-        if (action.type !== 'navigate' && action.type !== 'wait') {
+        if (action.type !== 'navigate' && action.type !== 'search' && action.type !== 'wait') {
           await sleepAbortable(350, controls.signal);
         }
       }
@@ -579,7 +641,19 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
         const scrolled =
           action.type === 'scroll' && afterSnapshot.viewport.scrollY !== snapshot.viewport.scrollY;
         const progressed =
-          afterSnapshot.url !== snapshot.url || fingerprintChanged || scrolled;
+          action.type === 'search' ||
+          afterSnapshot.url !== snapshot.url ||
+          fingerprintChanged ||
+          scrolled;
+        const movedTo = ['navigate', 'click', 'batch'].includes(action.type)
+          ? pathKey(afterSnapshot.url)
+          : null;
+        const visitedBefore =
+          movedTo && afterSnapshot.url !== snapshot.url
+            ? (pathVisits.get(movedTo) ?? 0) + 1
+            : 0;
+        if (movedTo && afterSnapshot.url !== snapshot.url) pathVisits.set(movedTo, visitedBefore);
+        const revisiting = visitedBefore >= 3;
         const typed =
           (action.type === 'type' && status === 'success') ||
           (action.type === 'batch' &&
@@ -619,7 +693,10 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
         }
 
         if (action.type === 'click_at') coordinateClicks += 1;
-        else if (status === 'success' && ['click', 'type', 'navigate', 'batch'].includes(action.type)) {
+        else if (
+          status === 'success' &&
+          ['click', 'type', 'navigate', 'search', 'batch'].includes(action.type)
+        ) {
           coordinateClicks = 0;
         }
         // Coordinate clicks are guesswork. When the DOM already exposes
@@ -629,11 +706,55 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
         const meaningfulProgress =
           typed ||
           (status === 'success' &&
-            ['click', 'type', 'navigate', 'batch'].includes(action.type) &&
+            ['click', 'type', 'navigate', 'search', 'batch'].includes(action.type) &&
             progressed);
         if (meaningfulProgress) stallCount = 0;
 
-        if (blindGuessing || noProgressStreak >= 3) {
+        if (blindGuessing || noProgressStreak >= 3 || revisiting) {
+          // A question that the current site keeps failing to answer is not a
+          // navigation problem: open a web search once so the run cannot burn
+          // every remaining step on the same two URLs.
+          if (
+            revisiting &&
+            revisitWarnings >= 1 &&
+            !searchFallbackUsed &&
+            !SEARCH_ENGINE_HOST.test(afterSnapshot.url) &&
+            looksLikeQuestion(task.objective)
+          ) {
+            searchFallbackUsed = true;
+            const query = fallbackQuery(task.objective, afterSnapshot.title ?? '');
+            // The results page must be readable afterwards, so ask for that
+            // origin before navigating rather than landing on a page the agent
+            // cannot see.
+            const searched = await executeAction(
+              tabId,
+              { type: 'search', query },
+              controls.signal,
+            );
+            const searchStep: AgentStep = {
+              id: uid('step'),
+              index: steps.length,
+              action: { type: 'search', query },
+              label: `Search the web for “${query}”`,
+              status: searched.ok ? 'success' : 'failed',
+              result: searched.message,
+              observation: '',
+              reasoning:
+                'This site kept sending me back to the same pages, so the answer is not on it.',
+              at: Date.now(),
+            };
+            steps.push(searchStep);
+            emit({ type: 'step', step: searchStep });
+            checkpoint('running');
+            stallNotice =
+              'A web search was opened because the site was not answering the question. Read the results, open the most relevant one, or answer from the snippets.';
+            noProgressStreak = 0;
+            repeatedActions = 0;
+            lastActionSignature = '';
+            stallCount = 0;
+            continue;
+          }
+
           const shouldStop =
             stallCount > 0 && (blindGuessing || repeatedActions >= 2 || stallCount >= 2);
           if (shouldStop) {
@@ -652,6 +773,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
           }
 
           stallCount += 1;
+          if (revisiting) revisitWarnings += 1;
           const reason = blindGuessing
             ? `you have used ${coordinateClicks} coordinate clicks without hitting a labeled control`
             : `the last ${noProgressStreak} actions did not change the page` +
@@ -660,7 +782,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
             `STALL${stallCount > 1 ? ' (final warning)' : ''}: ${reason}. ` +
             (blindGuessing
               ? 'This page exposes element ids, so coordinate guessing is unreliable. Use a labeled element id, scroll the target into view and observe again, or call finish and say the control is not exposed.'
-              : 'Do not repeat it. Use a materially different approach from the available controls, or call finish with a clear explanation of what is blocking the task and what the user should do.');
+              : 'Do not repeat it. Use a materially different approach from the available controls, call search with a short query if the answer is not on this site, or call finish with a clear explanation of what is blocking the task.');
           noProgressStreak = 0;
           repeatedActions = 0;
           lastActionSignature = '';

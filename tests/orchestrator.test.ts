@@ -103,6 +103,19 @@ vi.mock('@/browser/tabs', () => ({
 
 vi.mock('@/browser/permissions', () => ({
   hasOriginAccess: vi.fn(async () => true),
+  requestOriginAccess: vi.fn(async () => true),
+}));
+
+vi.mock('@/browser/websearch', () => ({
+  webSearch: vi.fn(async (query: string) => [
+    {
+      title: 'Does the Philips FC9352 pick up pet hair?',
+      url: 'https://example.com/review',
+      snippet: 'Owners report it works well on pet hair and fine dust.',
+    },
+  ]),
+  formatSearchResults: (query: string) =>
+    `Searched the web for “${query}” in the background. The tab was not touched.`,
 }));
 
 vi.mock('@/browser/screenshot', () => ({
@@ -328,6 +341,37 @@ describe('agent loop', () => {
     expect(outcome.error).toMatch(/progress/i);
     expect(h.providerCalls).toHaveLength(6);
     expect(String(h.providerCalls[3].correction)).toMatch(/STALL/);
+  });
+
+  it('breaks a two-page loop by opening a web search', async () => {
+    const shop = (path: string): PageSnapshot => ({
+      ...snapshot,
+      url: `https://shop.test${path}`,
+      title: 'PHILIPS PowerPro FC9352/01 Bagless Dry Vacuum | Shop',
+      textContent: 'Product page',
+    });
+    const click: BrowserAction = { type: 'click', elementId: 'el_2' };
+    const { outcome } = await run({
+      objective: 'does it clean pet hair effectively?',
+      settings: { maxSteps: 12 },
+      actions: [click, click, click, click, click, { type: 'finish', summary: 'Searched instead.' }],
+      snapshots: [
+        shop('/product'),
+        shop('/reviews'),
+        shop('/product'),
+        shop('/reviews'),
+        shop('/product'),
+        shop('/reviews'),
+        shop('/product'),
+        shop('/reviews'),
+        shop('/search-results'),
+      ],
+    });
+
+    const searched = outcome.steps.find((step) => step.action.type === 'search');
+    expect(searched).toBeDefined();
+    expect(searched?.label).toMatch(/Search the web/);
+    expect(String((searched?.action as { query?: string }).query)).toMatch(/pet hair/i);
   });
 
   it('stops blind coordinate clicking when labeled controls exist', async () => {

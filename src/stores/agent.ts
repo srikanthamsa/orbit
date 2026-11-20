@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   AgentStatus,
+  AnswerBlock,
   AgentStep,
   AgentTask,
   ApprovalRequest,
@@ -72,6 +73,7 @@ export interface AgentStore {
   screenshot: string | null;
   approval: ApprovalRequest | null;
   summary: string | null;
+  summaryBlocks: AnswerBlock[] | null;
   error: string | null;
   paused: boolean;
   settings: Settings;
@@ -88,7 +90,8 @@ export interface AgentStore {
   removeProvider: (id: string) => Promise<void>;
   setActiveProvider: (id: string) => Promise<void>;
   runTest: (id: string) => Promise<void>;
-  startTask: (objective: string) => Promise<void>;
+  startTask: (objective: string, context?: string) => Promise<void>;
+  continueConversation: (instruction: string) => Promise<void>;
   resumeTask: () => Promise<void>;
   pause: () => void;
   resume: () => void;
@@ -118,6 +121,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   screenshot: null,
   approval: null,
   summary: null,
+  summaryBlocks: null,
   error: null,
   paused: false,
   settings: DEFAULT_SETTINGS,
@@ -212,23 +216,23 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     }
   },
 
-  startTask: async (objective) => {
+  startTask: async (objective, context) => {
     const clean = objective.trim();
     if (!clean || running) return;
     const { providers, settings } = get();
     const provider = providers.find((p) => p.id === settings.activeProviderId) ?? providers[0];
     if (!provider) {
-      set({ error: 'Connect a model before starting a task.', route: 'settings' });
+      set({ error: 'Connect a model first.', route: 'settings' });
       return;
     }
     const apiKey = secrets[provider.id];
     if (!apiKey) {
-      set({ error: 'Add an API key for your model in Settings.', route: 'settings' });
+      set({ error: 'Add a key for your model.', route: 'settings' });
       return;
     }
     const tab = await getActiveTab();
     if (!tab?.id || !tab.url) {
-      set({ error: 'Open a website tab, then start ORBIT from that tab.' });
+      set({ error: 'Open a website tab first.' });
       return;
     }
     if (isRestrictedUrl(tab.url)) {
@@ -251,6 +255,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const task: AgentTask = {
       id: uid('task'),
       objective: clean,
+      context: context?.trim() || undefined,
       status: 'running',
       currentStep: 0,
       maxSteps: settings.maxSteps,
@@ -279,6 +284,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       screenshot: null,
       approval: null,
       summary: null,
+      summaryBlocks: null,
       error: null,
       paused: false,
       history: await loadHistory(),
@@ -295,6 +301,69 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     });
   },
 
+  continueConversation: async (instruction) => {
+    const clean = instruction.trim();
+    if (!clean || running) return;
+    const { task, summary, steps, usage, providers, settings } = get();
+    if (!task || !summary) {
+      await get().startTask(clean);
+      return;
+    }
+    const provider =
+      providers.find((p) => p.id === settings.activeProviderId) ?? providers[0];
+    if (!provider) {
+      set({ error: 'Connect a model first.', route: 'settings' });
+      return;
+    }
+    const apiKey = secrets[provider.id];
+    if (!apiKey) {
+      set({ error: 'Add a key for your model.', route: 'settings' });
+      return;
+    }
+    const tab = await getActiveTab();
+    if (!tab?.id || !tab.url) {
+      set({ error: 'Open a website tab first.' });
+      return;
+    }
+    if (isRestrictedUrl(tab.url)) {
+      set({ error: 'ORBIT can’t run on browser pages. Open a website tab.' });
+      return;
+    }
+    const granted = (await hasOriginAccess(tab.url)) || (await requestOriginAccess(tab.url));
+    if (!granted) {
+      set({ error: 'Site access wasn’t granted. Choose Allow when Chrome asks.' });
+      return;
+    }
+    const nextTask: AgentTask = {
+      ...task,
+      status: 'running',
+      currentStep: steps.length,
+      model: provider.model,
+      turns: [...(task.turns ?? []), { text: clean, at: Date.now() }],
+      context: `The user's latest request in this conversation: ${clean}\n\nPrevious result: ${summary}`,
+      updatedAt: Date.now(),
+    };
+    set({
+      route: 'task',
+      task: nextTask,
+      summary: null,
+      summaryBlocks: null,
+      error: null,
+      approval: null,
+      paused: false,
+      currentAction: null,
+    });
+    void runSequence({
+      task: nextTask,
+      provider,
+      apiKey,
+      settings,
+      tabId: tab.id,
+      steps,
+      usage,
+    });
+  },
+
   resumeTask: async () => {
     if (running) return;
     const checkpoint = get().checkpoint ?? (await loadCheckpoint());
@@ -304,21 +373,21 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       providers.find((p) => p.id === checkpoint.providerConfigId) ??
       providers.find((p) => p.id === settings.activeProviderId);
     if (!provider) {
-      set({ error: 'The model for this task is no longer configured.', route: 'settings' });
+      set({ error: 'That model is no longer set up.', route: 'settings' });
       return;
     }
     const apiKey = secrets[provider.id];
     if (!apiKey) {
-      set({ error: 'Add the API key for this task’s model.', route: 'settings' });
+      set({ error: 'Add the key for that model.', route: 'settings' });
       return;
     }
     const tab = await getActiveTab();
     if (!tab?.id || !tab.url) {
-      set({ error: 'Open the website tab you want ORBIT to continue in.' });
+      set({ error: 'Open the tab you want ORBIT to continue in.' });
       return;
     }
     if (isRestrictedUrl(tab.url)) {
-      set({ error: 'ORBIT can’t run on Chrome’s built-in pages. Open a normal website tab.' });
+      set({ error: 'ORBIT can’t run on browser pages. Open a website tab.' });
       return;
     }
     const granted = (await hasOriginAccess(tab.url)) || (await requestOriginAccess(tab.url));
@@ -348,6 +417,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       steps: checkpoint.steps,
       usage: checkpoint.usage,
       summary: null,
+      summaryBlocks: null,
       error: null,
       approval: null,
       paused: false,
@@ -438,6 +508,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       currentStep: sessionSteps.length,
       maxSteps: get().settings.maxSteps,
       model: record.model,
+      turns: record.turns,
       createdAt: record.createdAt,
       updatedAt: record.completedAt ?? record.createdAt,
     };
@@ -451,6 +522,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
         costUsd: record.costUsd || undefined,
       },
       summary: record.summary ?? null,
+      summaryBlocks: record.blocks ?? null,
       error: null,
       live: null,
       screenshot: null,
@@ -473,6 +545,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       task: null,
       steps: [],
       summary: null,
+      summaryBlocks: null,
       error: null,
       currentAction: null,
       live: null,
@@ -617,6 +690,7 @@ async function runSequence(input: RunSequenceInput): Promise<void> {
   set({
     task: finalTask,
     summary: outcome.summary ?? null,
+    summaryBlocks: outcome.blocks ?? null,
     error: outcome.error ?? null,
     currentAction: null,
     approval: null,
@@ -634,6 +708,8 @@ async function runSequence(input: RunSequenceInput): Promise<void> {
       objective: state.task.objective,
       status: finalTask?.status ?? 'failed',
       summary: outcome.summary,
+      blocks: outcome.blocks,
+      turns: state.task.turns,
       stepCount: outcome.steps.length,
       createdAt: state.task.createdAt,
       completedAt: Date.now(),
@@ -654,13 +730,7 @@ async function runSequence(input: RunSequenceInput): Promise<void> {
 }
 
 export async function followUpTask(text: string): Promise<void> {
-  const { task, summary, startTask } = useAgentStore.getState();
-  if (!text.trim()) return;
-  if (!task || !summary) {
-    await startTask(text);
-    return;
-  }
-  await startTask(
-    `Follow-up to a previous task.\nPrevious objective: ${task.objective}\nPrevious result: ${summary}\nNew instruction: ${text.trim()}`,
-  );
+  const instruction = text.trim();
+  if (!instruction) return;
+  await useAgentStore.getState().continueConversation(instruction);
 }
