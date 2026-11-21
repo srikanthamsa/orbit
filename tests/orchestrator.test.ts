@@ -551,3 +551,45 @@ describe('agent loop', () => {
     expect(outcome.status).toBe('completed');
   });
 });
+
+describe('answer quality', () => {
+  const QUESTION = 'was he a main eventer or a mid card talent in his days?';
+  const BIOGRAPHY =
+    'That is Hacksaw Jim Duggan, the American retired pro wrestler born January 14, 1954, best known for his 2x4 and his HOOOOO catchphrase. He won the first Royal Rumble in 1988 and entered the WWE Hall of Fame in 2011.';
+  const VERDICT =
+    'Jim Duggan was primarily a mid-card wrestler, though a recognisable upper-mid-card name. He was never a consistent world-title main-eventer.';
+
+  it('rewrites a biography that never answers a verdict question', async () => {
+    h.providerCalls.length = 0;
+    const { outcome } = await run({
+      objective: QUESTION,
+      actions: [
+        { type: 'finish', summary: BIOGRAPHY },
+        { type: 'finish', summary: VERDICT },
+      ],
+    });
+    expect(outcome.summary).toBe(VERDICT);
+    expect(h.providerCalls).toHaveLength(2);
+    expect(String(h.providerCalls[1].correction)).toContain('does not answer the question');
+  });
+
+  it('accepts a verdict on the first finish without a retry', async () => {
+    h.providerCalls.length = 0;
+    const { outcome } = await run({
+      objective: QUESTION,
+      actions: [{ type: 'finish', summary: VERDICT }],
+    });
+    expect(outcome.summary).toBe(VERDICT);
+    expect(h.providerCalls).toHaveLength(1);
+  });
+
+  it('does not retry an answer to an open question', async () => {
+    h.providerCalls.length = 0;
+    const { outcome } = await run({
+      objective: 'who is Jim Duggan?',
+      actions: [{ type: 'finish', summary: BIOGRAPHY }],
+    });
+    expect(outcome.summary).toBe(BIOGRAPHY);
+    expect(h.providerCalls).toHaveLength(1);
+  });
+});

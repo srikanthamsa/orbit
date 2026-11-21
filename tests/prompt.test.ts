@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInitialMessage, digestSnapshot, SYSTEM_PROMPT } from '@/providers/prompt';
+import { buildContinuationMessage, buildInitialMessage, digestSnapshot, SYSTEM_PROMPT } from '@/providers/prompt';
 import { redactSecret, redactText } from '@/safety/redaction';
 import type { PageSnapshot } from '@/types';
 
@@ -102,9 +102,17 @@ describe('prompt building', () => {
   });
 
   it('asks for a chat-style answer with no markdown', () => {
-    expect(SYSTEM_PROMPT).toContain('plain conversational prose');
+    expect(SYSTEM_PROMPT).toContain('The first sentence is the answer');
     expect(SYSTEM_PROMPT).toContain('no tables');
     expect(SYSTEM_PROMPT).toContain('Never narrate your process');
+  });
+
+  it('tells the model to answer the question, not the subject', () => {
+    expect(SYSTEM_PROMPT).toContain('not the thing next to it');
+    expect(SYSTEM_PROMPT).toContain('A ranking question with no ranking is a wrong answer');
+    expect(SYSTEM_PROMPT).toContain('Never open with a biography');
+    expect(SYSTEM_PROMPT).toContain('Search for the question, not just the name');
+    expect(SYSTEM_PROMPT).toContain('Check your answer before you call finish');
   });
 });
 
@@ -116,5 +124,21 @@ describe('redaction', () => {
 
   it('scrubs secrets from diagnostics', () => {
     expect(redactText('failed with sk-1234567890abc', ['sk-1234567890abc'])).toBe('failed with sk-…0abc');
+  });
+});
+
+describe('follow-up questions', () => {
+  it('states the new question as the objective of a continuation', () => {
+    const message = buildContinuationMessage(
+      'was he a main eventer or a mid card talent?',
+      'Earlier objective: who is this guy?\nEarlier answer: Hacksaw Jim Duggan is a retired wrestler.',
+    );
+    expect(message.startsWith('OBJECTIVE: was he a main eventer or a mid card talent?')).toBe(true);
+    expect(message).toContain('EARLIER IN THIS CONVERSATION:');
+    expect(message.indexOf('OBJECTIVE:')).toBeLessThan(message.indexOf('EARLIER'));
+  });
+
+  it('drops the earlier block when there is no context', () => {
+    expect(buildContinuationMessage('just the ids')).toBe('OBJECTIVE: just the ids');
   });
 });

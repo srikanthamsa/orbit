@@ -25,6 +25,11 @@ export interface AgentTask {
   turns?: TaskTurn[];
   /** Extra instructions for the model that are not part of the displayed objective. */
   context?: string;
+  /**
+   * The most recent thing the user asked. A follow-up becomes the question the
+   * model must answer, while `objective` stays the conversation's title.
+   */
+  latestRequest?: string;
   status: AgentStatus;
   currentStep: number;
   maxSteps: number;

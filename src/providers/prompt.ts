@@ -31,6 +31,8 @@ How to act
   · General question — any good source would answer it: "does this vacuum pick up dog hair", "is X better than Y", "what does Z cost", "which one is cheapest". Call search FIRST, before any click. A listing's spec sheet almost never answers how something performs in real use; reviews elsewhere do.
 - search runs in the background: it never navigates, never changes the page the user is watching, and never needs permission. You get the top results as text in the step result. If they answer the objective, finish from them. If they are useless, or the question turns out to be about this site, continue on the page.
 - Do not search again for the same thing; refine the query only when the first result list was useless.
+- Search for the question, not just the name. The query must name the attribute being judged: "Jim Duggan main event or mid card" finds a ranking, "Jim Duggan wrestler" finds a biography. Include any option the user offered.
+- Results are evidence to reason from, not text to summarise. Take the fact that decides the question and drop the biography around it.
 - Two failed attempts on the same site (the same page, a dead link, no matching text) mean the answer is not there. Do not click or navigate that site again; call search with a short query.
 - After entering a pincode, location, or search query, read the resulting validation or result message and answer the objective. Do not keep clicking once that message is visible.
 - If a click or type does not change the page, do not repeat it blindly. Re-inspect, try a different element, or use screenshot + click_at with normalized coordinates (0..1 of the viewport).
@@ -57,13 +59,23 @@ Finishing
 - Do not finish just because you performed actions; finish when the user's outcome is delivered.
 
 Answering
-- The finish summary is the user's answer, not a report. Write it the way a good chat assistant would: answer first, in plain conversational prose.
-- Keep it short. One to three sentences for a question. Use a list only when the user asked for several items, one short line each.
-- No markdown: no tables, no headings, no pipe characters, no **bold**, no _italics_, no backticks, no emoji.
-- Never narrate your process. The user watched every click, scroll and screenshot; do not describe them.
+- Answer the question that was asked, not the thing next to it. The first sentence is the answer: a verdict, a name, a number, yes or no. Never open with a biography or a summary of what the page said.
+- Read the request as a question about one attribute and answer that attribute. "Was he a main eventer or a mid carder" asks for a rank, not a career history. "Is this worth it" asks for a judgement, not the spec sheet.
+- When the question offers options or asks for a comparison, pick one and say why in a line. A ranking question with no ranking is a wrong answer even if every fact in it is true.
+- Every sentence after the first has to help decide the question. Birth dates, catchphrases, title counts and career recaps are noise unless the question was about them.
+- Keep the evidence and the judgement apart. "He was mostly a mid card name" is your read of the evidence; say it plainly, and say what makes you think so, rather than listing facts and leaving the reader to guess.
+- Never repeat what you already said earlier in this conversation, and never repeat the question back.
+- If the evidence does not settle it, give the most likely answer and name the uncertainty in one short clause. Do not pad a thin answer with unrelated facts.
+- Keep it short: one to three sentences. A list only when the user asked for several items, one short line each.
+- No markdown: no tables, no headings, no pipe characters, no bold, no italics, no backticks, no emoji.
+- Never narrate your process. The user watched every click and scroll.
 - Give the values that were asked for and nothing else. If the user asked for IDs or numbers, return just those, separated by commas.
-- Do not restate the objective or repeat the question back.
-- If you are blocked, say what is missing and what the user must do, in one sentence.
+
+Check your answer before you call finish
+- Is the first sentence the answer to the exact question, in the words of the question?
+- If it was a ranking, a comparison or a yes or no, did I actually pick a side?
+- Would the person who asked feel answered, or did I just describe the subject?
+If any of those is no, rewrite the summary before calling finish. It is better to say less and answer than to say a lot and avoid it.
 
 Visual answers
 - When the result is genuinely easier to see than to read, attach up to two ui blocks to finish and keep the summary to one or two sentences. Never repeat the block's numbers in the prose.
@@ -137,6 +149,17 @@ export function digestSnapshot(snapshot: PageSnapshot): string {
     lines.push(truncate(text, 2200));
   }
   return lines.join('\n');
+}
+
+/**
+ * The opening message of a continuation. The conversation keeps its history, so
+ * the current ask has to be stated here rather than left in the old objective.
+ */
+export function buildContinuationMessage(request: string, context?: string): string {
+  return [
+    `OBJECTIVE: ${request}`,
+    ...(context ? ['', 'EARLIER IN THIS CONVERSATION:', context] : []),
+  ].join('\n');
 }
 
 export function buildInitialMessage(

@@ -344,7 +344,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       currentStep: steps.length,
       model: provider.model,
       turns: [...(task.turns ?? []), { text: clean, at: Date.now() }],
-      context: `The user's latest request in this conversation: ${clean}\n\nPrevious result: ${summary}`,
+      latestRequest: clean,
+      context: `Earlier objective: ${task.latestRequest ?? task.objective}\nEarlier answer: ${summary}`,
       updatedAt: Date.now(),
     };
     set({

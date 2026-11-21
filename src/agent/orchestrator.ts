@@ -14,7 +14,13 @@ import type {
 } from '@/types';
 import { describeAction } from '@/types/actions';
 import { addUsage } from '@/providers/pricing';
-import { buildInitialMessage, digestSnapshot, STEP_OBSERVATION_LIMIT } from '@/providers/prompt';
+import {
+  buildContinuationMessage,
+  buildInitialMessage,
+  digestSnapshot,
+  STEP_OBSERVATION_LIMIT,
+} from '@/providers/prompt';
+import { checkAnswer } from '@/providers/answerCheck';
 import { requestAction } from '@/providers';
 import type { PromptStep } from '@/providers/types';
 import { captureSnapshot, pageActiveElement, pageClick, pageClickAt, pageElementAt, pageFind, pagePressKey, pageScroll, pageType } from '@/browser/dom';
@@ -344,6 +350,10 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
   const startedAt = Date.now();
   const capabilities = capabilitiesFor(provider);
   let captureBlocked = false;
+  /** One rewrite is allowed when the answer misses the question; then it stands. */
+  let answerRetried = false;
+  /** Carries that rewrite request into the next request, which starts a new step. */
+  let answerCorrection: string | undefined;
   let onPageHide: (() => void) | null = null;
 
   const checkpoint = (status: AgentStatus) => {
@@ -405,7 +415,8 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
 
       // Deterministic stop when the page itself blocks the task (stock,
       // CAPTCHA, sign-in). No amount of model reasoning gets past these.
-      const blocker = blockerSummary(snapshot, task.objective);
+      const request = task.latestRequest?.trim() || task.objective;
+      const blocker = blockerSummary(snapshot, request);
       if (blocker) {
         checkpoint('completed');
         return { status: 'completed', summary: blocker, steps, usage };
@@ -413,8 +424,11 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
 
       emit({ type: 'status', status: 'planning' });
 
-      if (!firstMessage) firstMessage = buildInitialMessage(task.objective, snapshot, task.context);
-      const initialMessage = steps.length === 0 ? firstMessage : `OBJECTIVE: ${task.objective}`;
+      if (!firstMessage) firstMessage = buildInitialMessage(request, snapshot, task.context);
+      // A continuation keeps its history, so the opening message is rebuilt from
+      // the current ask and the earlier exchange rather than the first objective.
+      const initialMessage =
+        steps.length === 0 ? firstMessage : buildContinuationMessage(request, task.context);
 
       let outcome: Awaited<ReturnType<typeof requestAction>> | null = null;
       let correction: string | undefined;
@@ -426,7 +440,8 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
             initialMessage,
             steps: toPromptSteps(steps),
             current: currentView(steps, digestSnapshot(snapshot)),
-            correction: [stallNotice, correction].filter(Boolean).join('\n\n') || undefined,
+            correction:
+              [stallNotice, correction, answerCorrection].filter(Boolean).join('\n\n') || undefined,
             signal: controls.signal,
           });
           break;
@@ -458,8 +473,18 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
       });
 
       const action = outcome.action;
+      // The rewrite notice is for the retry only; a real action means the model moved on.
+      if (action.type !== 'finish') answerCorrection = undefined;
       if (action.type === 'finish') {
         const summary = truncate(action.summary.trim(), 6000);
+        // A finished answer still has to answer the question. Checking locally
+        // costs one retry on a bad answer and nothing on a good one.
+        const verdict = checkAnswer(request, summary);
+        if (!verdict.ok && !answerRetried) {
+          answerRetried = true;
+          answerCorrection = `Your answer does not answer the question. ${verdict.reason} Rewrite it so the first sentence is the answer itself, then call finish again.`;
+          continue;
+        }
         checkpoint('completed');
         return { status: 'completed', summary, blocks: action.ui, steps, usage };
       }
@@ -750,10 +775,10 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
             revisitWarnings >= 1 &&
             !searchFallbackUsed &&
             !SEARCH_ENGINE_HOST.test(afterSnapshot.url) &&
-            looksLikeQuestion(task.objective)
+            looksLikeQuestion(request)
           ) {
             searchFallbackUsed = true;
-            const query = fallbackQuery(task.objective, afterSnapshot.title ?? '');
+            const query = fallbackQuery(request, afterSnapshot.title ?? '');
             // The results page must be readable afterwards, so ask for that
             // origin before navigating rather than landing on a page the agent
             // cannot see.
