@@ -21,6 +21,27 @@ export async function focusTab(tabId: number): Promise<void> {
   if (tab.windowId) await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
 }
 
+/**
+ * A tab for pages the user never asked to see. Created next to the current tab
+ * so its position is predictable, but never activated: the panel keeps reading
+ * this one while the user's own tab stays where they left it.
+ */
+export async function openBackgroundTab(
+  url: string,
+  opener?: chrome.tabs.Tab | null,
+): Promise<chrome.tabs.Tab> {
+  return chrome.tabs.create({
+    url,
+    active: false,
+    windowId: opener?.windowId,
+    index: typeof opener?.index === 'number' ? opener.index + 1 : undefined,
+  });
+}
+
+export async function closeTab(tabId: number): Promise<void> {
+  await chrome.tabs.remove(tabId).catch(() => {});
+}
+
 export async function navigateTab(tabId: number, url: string): Promise<void> {
   await chrome.tabs.update(tabId, { url });
 }

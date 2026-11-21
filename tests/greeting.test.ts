@@ -4,9 +4,13 @@ import { greeting, greetingPrompt } from '@/lib/utils';
 const at = (hour: number, minute = 0) => new Date(2026, 10, 20, hour, minute, 0);
 
 describe('greeting', () => {
-  it('always addresses the user as a mortal', () => {
+  it('says something at every hour, and never calls the user a mortal', () => {
+    // "mortal" was removed from the voice on request; the test now holds that
+    // line instead of enforcing it.
     for (const hour of [0, 3, 6, 9, 13, 18, 21, 23]) {
-      expect(greeting(at(hour))).toContain('mortal');
+      const line = greeting(at(hour));
+      expect(line.length).toBeGreaterThan(0);
+      expect(line.toLowerCase()).not.toContain('mortal');
     }
   });
 

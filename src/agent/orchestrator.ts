@@ -28,7 +28,17 @@ import { captureSnapshot, pageActiveElement, pageClick, pageClickAt, pageElement
 import { captureScreenshot } from '@/browser/screenshot';
 import { formatSearchResults, webSearch } from '@/browser/websearch';
 import { setControlOverlay } from '@/browser/control';
-import { describeTabFailure, focusTab, getTab, isRestrictedUrl, navigateAndSettle } from '@/browser/tabs';
+import {
+  closeTab,
+  describeTabFailure,
+  focusTab,
+  getTab,
+  isRestrictedUrl,
+  navigateAndSettle,
+  openBackgroundTab,
+  waitForTabComplete,
+} from '@/browser/tabs';
+import { shouldNavigateInBackground } from '@/agent/navigation';
 import { hasOriginAccess } from '@/browser/permissions';
 import { assessAction } from '@/safety/policy';
 import { capabilitiesFor } from '@/providers/capabilities';
@@ -130,7 +140,24 @@ interface ExecutionResult {
   image?: string;
 }
 
-async function executeAction(tabId: number, action: BrowserAction, signal: AbortSignal): Promise<ExecutionResult> {
+/**
+ * What a navigation needs to know beyond the tab it is handed: whether the run
+ * is researching, which page the user is watching, and where the hidden tab is.
+ */
+export interface ActionContext {
+  homeUrl?: string;
+  research: boolean;
+  workTabId: number | null;
+  /** Opens the hidden tab on first use and hands its id back to the run. */
+  adoptWorkTab: (tabId: number) => void;
+}
+
+async function executeAction(
+  tabId: number,
+  action: BrowserAction,
+  signal: AbortSignal,
+  context?: ActionContext,
+): Promise<ExecutionResult> {
   if (action.type === 'search') {
     try {
       const results = await webSearch(action.query);
@@ -147,6 +174,28 @@ async function executeAction(tabId: number, action: BrowserAction, signal: Abort
     }
   }
   if (action.type === 'navigate') {
+    if (
+      context &&
+      shouldNavigateInBackground(
+        { research: context.research, homeUrl: context.homeUrl, inBackgroundTab: context.workTabId !== null },
+        action.url,
+      )
+    ) {
+      // Do not focus, do not touch the user's tab: open the page elsewhere and
+      // keep reading it from there.
+      if (context.workTabId === null) {
+        const opener = await getTab(tabId);
+        const created = await openBackgroundTab(action.url, opener);
+        if (created.id !== undefined) {
+          context.adoptWorkTab(created.id);
+          await waitForTabComplete(created.id, 20000, signal);
+          await sleepAbortable(600, signal);
+        }
+        return { ok: true, message: `Opened ${truncate(action.url, 100)} in a background tab.` };
+      }
+      await navigateAndSettle(context.workTabId, action.url, signal, 600);
+      return { ok: true, message: `Navigated to ${truncate(action.url, 120)} (background tab).` };
+    }
     await focusTab(tabId);
     await navigateAndSettle(tabId, action.url, signal, 600);
     return { ok: true, message: `Navigated to ${truncate(action.url, 120)}.` };
@@ -172,7 +221,7 @@ async function executeAction(tabId: number, action: BrowserAction, signal: Abort
     const parts: string[] = [];
     let ok = true;
     for (const step of action.actions) {
-      const result = await executeAction(tabId, step as BrowserAction, signal);
+      const result = await executeAction(tabId, step as BrowserAction, signal, context);
       parts.push(`${describeAction(step as BrowserAction)}: ${result.message}`);
       if (!result.ok) {
         ok = false;
@@ -183,6 +232,15 @@ async function executeAction(tabId: number, action: BrowserAction, signal: Abort
     return { ok, message: parts.join('\n') };
   }
   if (action.type === 'screenshot') {
+    // captureVisibleTab needs the tab in front, which is the hijack again. A
+    // research page read from a hidden tab gives up the picture, not the view.
+    if (context && context.workTabId !== null && context.workTabId === tabId) {
+      return {
+        ok: false,
+        message:
+          'This page is open in the background, so no screenshot is taken. Use the page text you already have.',
+      };
+    }
     await focusTab(tabId);
     await setControlOverlay(tabId, { state: 'hidden' });
     try {
@@ -345,7 +403,26 @@ function blockerSummary(snapshot: PageSnapshot, objective: string): string | nul
 }
 
 export async function runAgent(input: RunInput): Promise<RunOutcome> {
-  const { task, provider, apiKey, settings, tabId, controls, emit } = input;
+  const { task, provider, apiKey, settings, tabId: startTabId, controls, emit } = input;
+  // The tab the run reads from. It starts as the user's and moves to a hidden
+  // tab the first time research takes the run off their page.
+  let tabId = startTabId;
+  let workTabId: number | null = null;
+  let research = false;
+  const homeTab = await getTab(startTabId).catch(() => null);
+  const actionContext: ActionContext = {
+    homeUrl: homeTab?.url,
+    get research() {
+      return research;
+    },
+    get workTabId() {
+      return workTabId;
+    },
+    adoptWorkTab: (id: number) => {
+      workTabId = id;
+      tabId = id;
+    },
+  } as ActionContext;
   const steps: AgentStep[] = [...input.steps];
   let usage = input.usage;
   const startedAt = Date.now();
@@ -636,7 +713,10 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
         const cursor = cursorForAction(action, target, snapshot, label);
         if (cursor) await setControlOverlay(tabId, { state: 'working', cursor });
         try {
-          const result: ExecutionResult = await executeAction(tabId, action, controls.signal);
+          research = research || action.type === 'search';
+          const result: ExecutionResult = await executeAction(tabId, action, controls.signal, actionContext);
+          // A hidden tab was opened or reused: every later step reads from it.
+          if (workTabId !== null && tabId !== workTabId) tabId = workTabId;
           resultMessage = result.message;
           image = result.image;
           if (result.image) emit({ type: 'screenshot', dataUrl: result.image });
@@ -874,5 +954,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
   } finally {
     if (typeof window !== 'undefined' && onPageHide) window.removeEventListener('pagehide', onPageHide);
     await setControlOverlay(tabId, { state: 'off' });
+    // The research trail is disposable: leave the user's tab count as we found it.
+    if (workTabId !== null) await closeTab(workTabId);
   }
 }
