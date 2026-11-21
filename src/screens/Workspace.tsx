@@ -325,7 +325,20 @@ export function Workspace() {
       </div>
 
       {terminal ? (
-        <div className="shrink-0 border-t border-line px-4 pb-3 pt-2.5">
+        <div className="relative shrink-0 px-4 pb-3 pt-3">
+          {/* depth instead of a divider: whatever scrolls here dissolves under a
+              short blur that is masked away at its top edge, so there is no band
+              and no rule -- just the transcript going soft and stopping. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-4 -right-4 -top-14 h-14"
+            style={{
+              backdropFilter: 'blur(7px)',
+              WebkitBackdropFilter: 'blur(7px)',
+              maskImage: 'linear-gradient(to top, #000 45%, transparent)',
+              WebkitMaskImage: 'linear-gradient(to top, #000 45%, transparent)',
+            }}
+          />
           <LiquidMultimodalInput
             value={followUp}
             onChange={setFollowUp}
