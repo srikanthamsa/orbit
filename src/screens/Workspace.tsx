@@ -326,13 +326,6 @@ export function Workspace() {
 
       {terminal ? (
         <div className="absolute inset-x-0 bottom-0 z-[1] px-3 pb-3">
-          {/* Grows upward from the composer's own edge; see .progressive-blur. */}
-          <div aria-hidden className="progressive-blur">
-            <div />
-            <div />
-            <div />
-            <div />
-          </div>
 
           <LiquidMultimodalInput
             value={followUp}

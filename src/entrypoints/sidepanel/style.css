@@ -673,67 +673,460 @@ textarea {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Progressive blur above the composer.
-
-   A single blurred strip ends on a hard edge wherever its top boundary sits,
-   and a bottom-anchored stack has one hard edge per layer. Masking every layer
-   to transparent at the top removes all of them: the only boundary left is the
-   composer itself, which is the point.
---------------------------------------------------------------------------- */
-
-.progressive-blur {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: 210px;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
+/* A 400px panel cannot afford a scrollbar that reads as a UI element, and on
+   macOS the light bar seen in the panel is the system overlay scrollbar: it is
+   painted by the compositor, so `::-webkit-scrollbar` colours do not reach it.
+   Setting `scrollbar-width` or `scrollbar-color` only swaps which engine paints
+   it, never the styling. Hiding is the one thing that works everywhere.
+   The transcript is short-lived and the composer's blur already signals that
+   content continues, so the affordance is not lost. */
+.scroll-thin {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.progressive-blur > div {
-  position: absolute;
-  inset: 0;
+.scroll-thin::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
-.progressive-blur > div:nth-child(1) {
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 100%);
+.orb-mark {
+  position: relative;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 28%, var(--orb-shine), rgba(255, 255, 255, 0) 42%),
+    conic-gradient(from 210deg, var(--orb-1), var(--orb-2), var(--orb-3), var(--orb-1));
+  box-shadow:
+    inset 0 0 6px var(--orb-inner),
+    0 0 18px var(--orb-glow);
 }
 
-.progressive-blur > div:nth-child(2) {
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 25%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 25%, #000 100%);
-}
-
-.progressive-blur > div:nth-child(3) {
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 50%, #000 100%);
-}
-
-.progressive-blur > div:nth-child(4) {
-  -webkit-backdrop-filter: blur(26px);
-  backdrop-filter: blur(26px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 75%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 75%, #000 100%);
-}
-
-/* A last few pixels of falloff so the blur meets the composer instead of
-   stopping on it. Shallow on purpose: this darkens, it does not hide. */
-.progressive-blur::after {
+.orb-mark::after {
   content: '';
   position: absolute;
+  inset: 22%;
+  border-radius: 999px;
+  background: var(--canvas);
+  opacity: 0.86;
+}
+
+.live-dot {
+  position: relative;
+}
+.live-dot::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.35;
+  animation: breathe 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* Onboarding: the orb emits two slow rings while the first run is unconfigured. */
+.orb-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid var(--accent-line);
+  animation: halo 3.6s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+.orb-halo-2 {
+  animation-delay: 1.8s;
+}
+
+@keyframes halo {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.5);
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+  }
+}
+
+/* Connection confirmation: a quiet toast, not a takeover. */
+.toast-in {
+  animation: toast-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.draw-smile {
+  stroke-dasharray: 12;
+  stroke-dashoffset: 12;
+  animation: draw-smile 0.3s 0.08s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes draw-smile {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Onboarding CTA — "Add your key".
+   Button from Uiverse.io by Ashon-G, namespaced to .uv-btn so it cannot leak
+   into the panel. Two deliberate changes: the label colour is darkened (white
+   on #ffd215 is ~1.4:1) and a focus ring replaces `outline: none`.
+--------------------------------------------------------------------------- */
+
+.uv-btn {
+  --duration: 7s;
+  --easing: linear;
+  --c-color-1: rgba(91, 140, 255, 0.75);
+  --c-color-2: #5d5cf0;
+  --c-color-3: #2f9bff;
+  --c-color-4: rgba(168, 200, 255, 0.75);
+  --c-shadow: rgba(91, 140, 255, 0.5);
+  --c-shadow-inset-top: rgba(198, 219, 255, 0.85);
+  --c-shadow-inset-bottom: rgba(232, 241, 255, 0.7);
+  --c-radial-inner: #3560d4;
+  --c-radial-outer: #6f9bff;
+  --c-color: #ffffff;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  display: table;
+  border-radius: 20px;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  color: var(--c-color);
+  background: radial-gradient(circle, var(--c-radial-inner), var(--c-radial-outer) 80%);
+  box-shadow: 0 0 14px var(--c-shadow);
+}
+
+.uv-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.uv-btn::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
   left: 0;
+  top: 0;
   right: 0;
   bottom: 0;
-  height: 44px;
-  background: linear-gradient(to top, rgba(7, 7, 10, 0.72) 0%, transparent 100%);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 3px 12px var(--c-shadow-inset-top),
+    inset 0 -3px 4px var(--c-shadow-inset-bottom);
 }
+
+.uv-btn .uv-btn__wrapper {
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  overflow: hidden;
+  border-radius: 20px;
+  min-width: 132px;
+  padding: 9px 26px;
+  display: block;
+}
+
+.uv-btn .uv-btn__label {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(4, 10, 30, 0.35);
+}
+
+.uv-btn:hover {
+  --duration: 1400ms;
+}
+
+.uv-btn .uv-btn__circle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  filter: blur(var(--blur, 8px));
+  background: var(--background, transparent);
+  transform: translate(var(--x, 0), var(--y, 0)) translateZ(0);
+  animation: var(--animation, none) var(--duration) var(--easing) infinite;
+}
+
+.uv-btn .uv-btn__circle-1,
+.uv-btn .uv-btn__circle-9,
+.uv-btn .uv-btn__circle-10 {
+  --background: var(--c-color-4);
+}
+
+.uv-btn .uv-btn__circle-3,
+.uv-btn .uv-btn__circle-4 {
+  --background: var(--c-color-2);
+  --blur: 14px;
+}
+
+.uv-btn .uv-btn__circle-5,
+.uv-btn .uv-btn__circle-6 {
+  --background: var(--c-color-3);
+  --blur: 16px;
+}
+
+.uv-btn .uv-btn__circle-2,
+.uv-btn .uv-btn__circle-7,
+.uv-btn .uv-btn__circle-8,
+.uv-btn .uv-btn__circle-11,
+.uv-btn .uv-btn__circle-12 {
+  --background: var(--c-color-1);
+  --blur: 12px;
+}
+
+.uv-btn .uv-btn__circle-1 { --x: 0; --y: -40px; --animation: uv-circle-1; }
+.uv-btn .uv-btn__circle-2 { --x: 92px; --y: 8px; --animation: uv-circle-2; }
+.uv-btn .uv-btn__circle-3 { --x: -12px; --y: -12px; --animation: uv-circle-3; }
+.uv-btn .uv-btn__circle-4 { --x: 80px; --y: -12px; --animation: uv-circle-4; }
+.uv-btn .uv-btn__circle-5 { --x: 12px; --y: -4px; --animation: uv-circle-5; }
+.uv-btn .uv-btn__circle-6 { --x: 56px; --y: 16px; --animation: uv-circle-6; }
+.uv-btn .uv-btn__circle-7 { --x: 8px; --y: 28px; --animation: uv-circle-7; }
+.uv-btn .uv-btn__circle-8 { --x: 28px; --y: -4px; --animation: uv-circle-8; }
+.uv-btn .uv-btn__circle-9 { --x: 20px; --y: -12px; --animation: uv-circle-9; }
+.uv-btn .uv-btn__circle-10 { --x: 64px; --y: 16px; --animation: uv-circle-10; }
+.uv-btn .uv-btn__circle-11 { --x: 4px; --y: 4px; --animation: uv-circle-11; }
+.uv-btn .uv-btn__circle-12 { --blur: 14px; --x: 52px; --y: 4px; --animation: uv-circle-12; }
+
+@keyframes uv-circle-1 {
+  33% { transform: translate(0px, 16px) translateZ(0); }
+  66% { transform: translate(12px, 64px) translateZ(0); }
+}
+
+@keyframes uv-circle-2 {
+  33% { transform: translate(80px, -10px) translateZ(0); }
+  66% { transform: translate(72px, -48px) translateZ(0); }
+}
+
+@keyframes uv-circle-3 {
+  33% { transform: translate(20px, 12px) translateZ(0); }
+  66% { transform: translate(12px, 4px) translateZ(0); }
+}
+
+@keyframes uv-circle-4 {
+  33% { transform: translate(76px, -12px) translateZ(0); }
+  66% { transform: translate(112px, -8px) translateZ(0); }
+}
+
+@keyframes uv-circle-5 {
+  33% { transform: translate(84px, 28px) translateZ(0); }
+  66% { transform: translate(40px, -32px) translateZ(0); }
+}
+
+@keyframes uv-circle-6 {
+  33% { transform: translate(28px, -16px) translateZ(0); }
+  66% { transform: translate(76px, -56px) translateZ(0); }
+}
+
+@keyframes uv-circle-7 {
+  33% { transform: translate(8px, 28px) translateZ(0); }
+  66% { transform: translate(20px, -60px) translateZ(0); }
+}
+
+@keyframes uv-circle-8 {
+  33% { transform: translate(32px, -4px) translateZ(0); }
+  66% { transform: translate(56px, -20px) translateZ(0); }
+}
+
+@keyframes uv-circle-9 {
+  33% { transform: translate(20px, -12px) translateZ(0); }
+  66% { transform: translate(80px, -8px) translateZ(0); }
+}
+
+@keyframes uv-circle-10 {
+  33% { transform: translate(68px, 20px) translateZ(0); }
+  66% { transform: translate(100px, 28px) translateZ(0); }
+}
+
+@keyframes uv-circle-11 {
+  33% { transform: translate(4px, 4px) translateZ(0); }
+  66% { transform: translate(68px, 20px) translateZ(0); }
+}
+
+@keyframes uv-circle-12 {
+  33% { transform: translate(56px, 0px) translateZ(0); }
+  66% { transform: translate(60px, -32px) translateZ(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Connection celebration
+--------------------------------------------------------------------------- */
+
+/* A single soft light source behind the mark. Static: only opacity and
+   transform are animated by Motion, never this gradient. */
+.done-spot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      70% 52% at 50% 41%,
+      color-mix(in srgb, var(--accent) 20%, transparent) 0%,
+      transparent 86%
+    ),
+    radial-gradient(34% 26% at 50% 41%, rgba(255, 255, 255, 0.05) 0%, transparent 80%);
+}
+
+.done-bloom {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent) 55%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 18%, transparent) 45%,
+    transparent 68%
+  );
+  filter: blur(5px);
+}
+
+.done-orb {
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 58px color-mix(in srgb, #8b7cf6 28%, transparent);
+}
+
+/* Specular pass over the mark: a narrow band of light crossing once. */
+.done-sheen {
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  /* Light only touches the ring, never the hole or the page behind it. */
+  -webkit-mask-image: radial-gradient(circle, transparent 0 30%, #000 32%);
+  mask-image: radial-gradient(circle, transparent 0 30%, #000 32%);
+}
+
+/* ---------------------------------------------------------------------------
+   Agent phase indicator
+--------------------------------------------------------------------------- */
+
+.phase-dots {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 3px;
+}
+
+.phase-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--faint);
+}
+
+.phase-dots[data-live] i {
+  background: var(--accent);
+  animation: phase-bounce 1.15s ease-in-out infinite;
+}
+
+.phase-dots[data-live] i:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.phase-dots[data-live] i:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+@keyframes phase-bounce {
+  0%,
+  72%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  36% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+
+/* Frosted surface: translucent fill, blurred backdrop, a lit top edge. The
+   washes behind it come from body::before, which is what makes the
+   translucency readable instead of a grey rectangle. */
+.glass {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(8, 8, 11, 0.32);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 28px -18px rgba(0, 0, 0, 0.55);
+}
+
+.glass-float {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 1px rgba(0, 0, 0, 0.2),
+    0 8px 24px -8px rgba(0, 0, 0, 0.55),
+    0 24px 56px -16px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='light'] .glass-float {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 1px rgba(16, 20, 35, 0.04),
+    0 8px 24px -8px rgba(16, 20, 35, 0.12),
+    0 24px 56px -16px rgba(16, 20, 35, 0.18);
+}
+
+[data-theme='light'] .glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.72) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 28px -18px rgba(20, 24, 45, 0.2);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
