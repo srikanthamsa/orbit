@@ -58,25 +58,24 @@ Most browser AI stops at "here is what you could do." ORBIT does the thing — t
 ## Screenshots
 
 <p align="center">
-  <img src="store/slides/01-context.png" alt="ORBIT docked in the side panel of a Chrome window on a Flipkart search page" width="100%" />
+  <a href="store-assets/final/screenshot-1.png"><img src="store-assets/final/screenshot-1.png" alt="ORBIT answering a comparison inside the browser side panel" width="100%" /></a>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/panel-trace.jpg" alt="A step opened: the reasoning, the result, what it clicked" width="49%" />
+  <a href="store-assets/final/screenshot-2.png"><img src="store-assets/final/screenshot-2.png" alt="A step opened: the reasoning, the result and the screenshot" width="49%" /></a>
   &nbsp;
-  <img src="docs/screenshots/panel-running.jpg" alt="While it works: the live action and the steps behind it" width="49%" />
+  <a href="store-assets/final/screenshot-3.png"><img src="store-assets/final/screenshot-3.png" alt="Two states side by side: the answer and its comparison table" width="49%" /></a>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/panel-answer.jpg" alt="The answer, with the question it came from" width="49%" />
+  <a href="store-assets/final/screenshot-4.png"><img src="store-assets/final/screenshot-4.png" alt="The verdict first, the working folded underneath" width="49%" /></a>
+  &nbsp;
+  <a href="store-assets/final/screenshot-5.png"><img src="store-assets/final/screenshot-5.png" alt="Bring your own model, nothing leaves your tab, MIT licensed" width="49%" /></a>
 </p>
 
-Every step collapses to one line and opens to what it thought and what it found, so a
-twenty-step run reads as a short list instead of a wall of text. Every shot here is a
-capture of the real panel — none of them are mockups.
-
-Unframed captures for press or a store listing, with the copy that goes with each,
-live in [`store/raw`](store/raw) ([`COPY.md`](store/raw/COPY.md)).
+Every shot is a capture of the real extension, driven through its own UI and
+chrome.storage, then composed on white. Rebuild them with
+`node store-assets/capture.mjs && node store-assets/render.mjs`.
 
 ## Install
 

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ORBIT store assets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --white: #ffffff;
+        --surface: #f5f5f7;
+        --ink: #1d1d1f;
+        --muted: #6e6e73;
+        --hairline: rgba(0, 0, 0, 0.08);
+        --accent: #5a9bff;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html, body {
+        background: var(--white);
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        color: var(--ink);
+        overflow: hidden;
+      }
+
+      .slide {
+        position: relative;
+        width: 1280px;
+        height: 800px;
+        background: var(--white);
+        overflow: hidden;
+      }
+
+      .eyebrow {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1 {
+        font-size: 60px;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 1.06;
+        text-wrap: balance;
+      }
+
+      .sub {
+        margin-top: 18px;
+        font-size: 21px;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        line-height: 1.4;
+        color: var(--muted);
+        text-wrap: balance;
+      }
+
+      /* browser frame */
+      .window {
+        border-radius: 16px;
+        border: 1px solid var(--hairline);
+        background: #0b0d12;
+        overflow: hidden;
+        box-shadow:
+          0 2px 4px rgba(0, 0, 0, 0.02),
+          0 12px 24px rgba(0, 0, 0, 0.05),
+          0 32px 64px -12px rgba(0, 0, 0, 0.12);
+      }
+
+      .bar {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+        background: #fafafa;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      .dots { display: flex; gap: 7px; }
+      .dots i {
+        display: block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.12);
+      }
+
+      .pill {
+        flex: 1;
+        height: 20px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.04);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        letter-spacing: -0.005em;
+        color: rgba(0, 0, 0, 0.42);
+      }
+
+      .window img { display: block; width: 100%; }
+
+      .card {
+        background: var(--surface);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+
+      .card .window {
+        -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 99%);
+        mask-image: linear-gradient(to bottom, #000 76%, transparent 99%);
+      }
+
+      .center { display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+      .marks { margin-top: 26px; font-size: 15px; color: var(--muted); letter-spacing: -0.005em; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const shot = params.get('s') ?? 'hero';
+      const raw = params.get('raw') ?? 'raw';
+
+      const WINDOW = (src, label) => `
+        <div class="window">
+          <div class="bar">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <div class="pill">${label}</div>
+          </div>
+          <img src="${raw}/${src}.png" alt="" />
+        </div>`;
+
+      const SLIDES = {
+        // 1 · hero: centred type, the window oversized and bleeding off the floor
+        hero: () => `
+          <div class="slide center" style="padding-top:96px">
+            <div class="eyebrow">ORBIT · Browser agent</div>
+            <h1 style="margin-top:20px;max-width:640px">Say what you need.</h1>
+            <p class="sub" style="max-width:520px">It reads the page, does the clicking and answers. You keep the tab.</p>
+            <div style="margin-top:46px;width:624px">
+              <div class="window">
+                <div class="bar">
+                  <div class="dots"><i></i><i></i><i></i></div>
+                  <div class="pill">flipkart.com</div>
+                </div>
+                <div style="height:478px;overflow:hidden">
+                  <img src="raw/rich.png" style="width:100%;display:block" alt="" />
+                </div>
+              </div>
+            </div>
+          </div>`,
+
+        // 2 · split: type left, a zoomed crop right that runs off the edge
+        split: () => `
+          <div class="slide" style="display:flex;align-items:center">
+            <div style="width:470px;padding-left:96px">
+              <div class="eyebrow">Every step, on the record</div>
+              <h1 style="margin-top:18px;font-size:56px">Ask why it<br />clicked that.</h1>
+              <p class="sub" style="max-width:380px">Open any step for the reasoning, the result and the page it acted on.</p>
+            </div>
+            <div style="position:absolute;left:600px;top:44px;width:520px">
+              ${WINDOW('step-open', 'flipkart.com')}
+            </div>
+          </div>`,
+
+        // 3 · bento: two focused states side by side on card surfaces
+        bento: () => `
+          <div class="slide" style="padding:88px 96px 0">
+            <div class="eyebrow">One thread, start to finish</div>
+            <h1 style="margin-top:16px;max-width:900px">From a question<br />to the answer.</h1>
+            <div style="display:flex;gap:28px;margin-top:34px">
+              <div class="card" style="width:520px;height:412px;padding:18px 18px 0">
+                ${WINDOW('answer', 'flipkart.com')}
+              </div>
+              <div class="card" style="width:520px;height:412px;padding:18px 18px 0">
+                <div class="window">
+                  <div class="bar">
+                    <div class="dots"><i></i><i></i><i></i></div>
+                    <div class="pill">flipkart.com</div>
+                  </div>
+                  <div style="height:338px;overflow:hidden">
+                    <img src="raw/rich.png" style="width:100%;display:block;margin-top:-352px" alt="" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>`,
+
+        // 4 · value: the answer, large, on white, type above
+        answer: () => `
+          <div class="slide" style="padding-top:88px;display:flex;flex-direction:column;align-items:center">
+            <div class="eyebrow">The payoff</div>
+            <h1 style="margin-top:16px;max-width:760px;text-align:center;font-size:56px">The verdict comes first.</h1>
+            <p class="sub" style="max-width:500px;text-align:center">One or two sentences, then the working folded underneath it.</p>
+            <div style="margin-top:34px;width:556px">
+              ${WINDOW('answer', 'flipkart.com')}
+            </div>
+          </div>`,
+
+        // 5 · trust: no product UI, just three claims
+        trust: () => `
+          <div class="slide center" style="justify-content:center;padding:0 140px">
+            <div class="eyebrow">No middleman</div>
+            <h1 style="margin-top:18px;max-width:760px">Your key. Your browser.</h1>
+            <p class="sub" style="max-width:560px">No account, no ORBIT server, no telemetry. The key goes from this browser straight to your provider.</p>
+            <div style="display:flex;gap:56px;margin-top:64px;text-align:left">
+              <div><div style="font-size:19px;font-weight:600">Bring your own model</div><div class="marks">OpenAI, Anthropic, Gemini, DeepSeek</div></div>
+              <div><div style="font-size:19px;font-weight:600">Nothing leaves your tab</div><div class="marks">Page content goes only to your provider</div></div>
+              <div><div style="font-size:19px;font-weight:600">MIT licensed</div><div class="marks">Read every line before you install</div></div>
+            </div>
+          </div>`,
+
+        // promo small: 440 x 280
+        'promo-small': () => `
+          <div style="width:440px;height:280px;background:var(--white);position:relative;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif">
+            <div style="position:absolute;left:28px;top:34px">
+              <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)">ORBIT</div>
+              <div style="margin-top:8px;font-size:30px;font-weight:700;letter-spacing:-.035em;line-height:1.05;color:var(--ink)">Say what<br />you need.</div>
+              <div style="margin-top:10px;font-size:13px;color:var(--muted);letter-spacing:-.005em">Browser agent, in your side panel.</div>
+            </div>
+            <div style="position:absolute;right:-46px;top:56px;width:210px;border-radius:12px;border:1px solid var(--hairline);overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.02),0 12px 24px rgba(0,0,0,.05),0 32px 64px -12px rgba(0,0,0,.12)">
+              <img src="${raw}/answer.png" style="width:100%;display:block" alt="" />
+            </div>
+          </div>`,
+
+        // promo marquee: 1400 x 560
+        'promo-marquee': () => `
+          <div style="width:1400px;height:560px;background:var(--white);position:relative;overflow:hidden;display:flex;align-items:center">
+            <div style="width:620px;padding-left:96px">
+              <div style="font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)">ORBIT · Browser agent</div>
+              <div style="margin-top:18px;font-size:64px;font-weight:700;letter-spacing:-.035em;line-height:1.06;color:var(--ink)">Say what<br />you need.</div>
+              <div style="margin-top:20px;font-size:21px;color:var(--muted);letter-spacing:-.01em;max-width:460px">It reads the page, does the clicking and answers. Bring your own model.</div>
+            </div>
+            <div style="position:absolute;left:700px;top:64px;width:560px;border-radius:16px;border:1px solid var(--hairline);overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.02),0 12px 24px rgba(0,0,0,.05),0 32px 64px -12px rgba(0,0,0,.12)">
+              <div style="height:36px;background:#fafafa;border-bottom:1px solid rgba(0,0,0,.06);display:flex;align-items:center;gap:10px;padding:0 14px">
+                <div style="display:flex;gap:7px"><i style="display:block;width:10px;height:10px;border-radius:50%;background:rgba(0,0,0,.12)"></i><i style="display:block;width:10px;height:10px;border-radius:50%;background:rgba(0,0,0,.12)"></i><i style="display:block;width:10px;height:10px;border-radius:50%;background:rgba(0,0,0,.12)"></i></div>
+                <div style="flex:1;height:20px;border-radius:10px;background:rgba(0,0,0,.04)"></div>
+              </div>
+              <img src="${raw}/rich.png" style="width:100%;display:block" alt="" />
+            </div>
+          </div>`,
+      };
+
+      document.getElementById('root').innerHTML = (SLIDES[shot] ?? SLIDES.hero)();
+      document.fonts.ready.then(() => {
+        window.__ready = true;
+      });
+    </script>
+  </body>
+</html>

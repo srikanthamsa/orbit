@@ -13,3 +13,6 @@ preview/dist
 .claude/
 agent/
 skills-lock.json
+
+# screenshot pipeline scratch
+store-assets/.render/
