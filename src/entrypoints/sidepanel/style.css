@@ -216,18 +216,22 @@ textarea {
   background: var(--line);
 }
 
+/* A 400px panel cannot afford a scrollbar that reads as a UI element, and on
+   macOS the light bar seen in the panel is the system overlay scrollbar: it is
+   painted by the compositor, so `::-webkit-scrollbar` colours do not reach it.
+   Setting `scrollbar-width` or `scrollbar-color` only swaps which engine paints
+   it, never the styling. Hiding is the one thing that works everywhere.
+   The transcript is short-lived and the composer's blur already signals that
+   content continues, so the affordance is not lost. */
 .scroll-thin {
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+
 .scroll-thin::-webkit-scrollbar {
-  width: 8px;
-}
-.scroll-thin::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border-radius: 99px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .orb-mark {
