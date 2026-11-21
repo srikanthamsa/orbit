@@ -196,7 +196,7 @@ export function LiquidMultimodalInput({
           className={cn(
             "group relative isolate flex w-full flex-col gap-2 overflow-hidden rounded-[28px] p-3 transition-all duration-150 ease-in-out",
             // Light Mode Styles
-            "glass glass-float border border-line/70",
+            "glass glass-float border border-line",
             "shadow-[0_1px_2px_rgba(0,0,0,.06),0_8px_24px_-12px_rgba(0,0,0,.08)]",
             "hover:border-line-strong focus-within:border-accent-line",
             // Dark Mode Styles

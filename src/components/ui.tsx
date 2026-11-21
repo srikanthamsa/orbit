@@ -582,7 +582,7 @@ export function TraceRow({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="focus-ring-inset flex w-full items-start gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-surface/60"
+        className="focus-ring-inset flex w-full items-start gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-surface"
       >
         <span className="mt-[2px] shrink-0" style={{ color: tone }} aria-hidden>
           {status === 'success' ? (
