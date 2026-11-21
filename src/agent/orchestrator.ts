@@ -14,7 +14,7 @@ import type {
 } from '@/types';
 import { describeAction } from '@/types/actions';
 import { addUsage } from '@/providers/pricing';
-import { buildInitialMessage, digestSnapshot } from '@/providers/prompt';
+import { buildInitialMessage, digestSnapshot, STEP_OBSERVATION_LIMIT } from '@/providers/prompt';
 import { requestAction } from '@/providers';
 import type { PromptStep } from '@/providers/types';
 import { captureSnapshot, pageActiveElement, pageClick, pageClickAt, pageElementAt, pageFind, pagePressKey, pageScroll, pageType } from '@/browser/dom';
@@ -186,21 +186,28 @@ async function executeAction(tabId: number, action: BrowserAction, signal: Abort
   return { ok: false, message: 'Unsupported action.' };
 }
 
+/**
+ * History sent to the model. Every field is a pure function of the step, so a
+ * message is byte-identical on every later turn: that is what lets the provider
+ * reuse its prompt cache. No sliding window, no retroactive trimming, no images
+ * that move. The live page rides along separately as `current`.
+ */
 function toPromptSteps(steps: AgentStep[]): PromptStep[] {
-  const recent = steps.slice(-6);
-  return recent.map((step, index) => ({
+  return steps.map((step) => ({
     id: step.id,
     action: step.action,
     reasoning: step.reasoning,
     providerReasoning: step.providerReasoning,
     result: `${step.result}${step.status === 'rejected' ? ' (denied by user)' : ''}`,
-    // Only the newest observations need full page detail; trimming older ones
-    // keeps long DeepSeek runs from re-sending hundreds of thousands of tokens.
-    observation:
-      index >= recent.length - 2 ? step.observation : `${step.observation.slice(0, 600)}…`,
-    image: step.image,
+    observation: truncate(step.observation, STEP_OBSERVATION_LIMIT),
     status: step.status,
   }));
+}
+
+/** The freshest screenshot in the run, shown once, outside the history. */
+function currentView(steps: AgentStep[], observation: string): { observation: string; image?: string } {
+  const visual = [...steps].reverse().find((step) => step.image);
+  return { observation, image: visual?.image };
 }
 
 /** URL identity without query noise, so link variants count as one page. */
@@ -409,6 +416,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
             apiKey,
             initialMessage,
             steps: toPromptSteps(steps),
+            current: currentView(steps, digestSnapshot(snapshot)),
             correction: [stallNotice, correction].filter(Boolean).join('\n\n') || undefined,
             signal: controls.signal,
           });

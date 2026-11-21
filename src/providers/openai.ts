@@ -36,15 +36,20 @@ function nativeMessages(req: ProviderRequest): Record<string, unknown>[] {
       tool_call_id: step.id,
       content: `${step.result}\n\n${step.observation}`,
     });
-    if (req.includeImages && step.image) {
-      messages.push({
-        role: 'user',
-        content: [
-          { type: 'text', text: `Screenshot captured after step ${step.id}.` },
-          { type: 'image_url', image_url: { url: step.image, detail: 'low' } },
-        ],
-      });
-    }
+  }
+  if (req.current) {
+    const text = `Page now:\n${req.current.observation}`;
+    messages.push(
+      req.includeImages && req.current.image
+        ? {
+            role: 'user',
+            content: [
+              { type: 'text', text },
+              { type: 'image_url', image_url: { url: req.current.image, detail: 'low' } },
+            ],
+          }
+        : { role: 'user', content: text },
+    );
   }
   if (req.correction) messages.push({ role: 'user', content: req.correction });
   return messages;
@@ -72,24 +77,27 @@ function flatMessages(req: ProviderRequest): Record<string, unknown>[] {
       ].join('\n');
     })
     .join('\n\n');
-  let text = [
+  const blocks = [
     req.initialMessage,
     '',
     'HISTORY — actions you already completed. Do not repeat them.',
     '',
     history,
+  ];
+  if (req.current) blocks.push('', 'PAGE NOW', req.current.observation);
+  blocks.push(
     '',
-    'Continue from the page state in the final observation above and choose the next action.',
-  ].join('\n');
+    'Continue from the page state above and choose the next action.',
+  );
+  let text = blocks.join('\n');
   if (req.correction) text += `\n\n${req.correction}`;
 
-  const imageStep = [...req.steps].reverse().find((step) => step.image);
-  if (req.includeImages && imageStep?.image) {
+  if (req.includeImages && req.current?.image) {
     messages.push({
       role: 'user',
       content: [
         { type: 'text', text },
-        { type: 'image_url', image_url: { url: imageStep.image, detail: 'low' } },
+        { type: 'image_url', image_url: { url: req.current.image, detail: 'low' } },
       ],
     });
   } else {

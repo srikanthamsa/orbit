@@ -43,11 +43,16 @@ export function buildAnthropicMessages(req: ProviderRequest): Block[] {
         is_error: step.status === 'failed',
       },
     ];
-    if (req.includeImages && step.image) {
-      const img = splitDataUrl(step.image);
-      user.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } });
-    }
     messages.push({ role: 'user', content: user });
+  }
+
+  if (req.current) {
+    const blocks: Block[] = [{ type: 'text', text: `Page now:\n${req.current.observation}` }];
+    if (req.includeImages && req.current.image) {
+      const img = splitDataUrl(req.current.image);
+      blocks.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } });
+    }
+    messages.push({ role: 'user', content: blocks });
   }
 
   if (req.correction) {

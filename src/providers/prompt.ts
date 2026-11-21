@@ -2,6 +2,12 @@ import type { PageSnapshot } from '@/types';
 import { truncate } from '@/lib/utils';
 import { ACTION_TOOL_NAME } from './schema';
 
+/**
+ * Characters of page digest kept per completed step. Applied to every step
+ * identically, at read time, so a step's text is the same on every later turn.
+ */
+export const STEP_OBSERVATION_LIMIT = 1200;
+
 export const SYSTEM_PROMPT = `You are ORBIT, an autonomous agent operating the user's Chrome tab.
 
 You work in a strict loop: you receive a snapshot of the page, you choose exactly one browser action, the host executes it, and you receive a fresh snapshot. Call the ${ACTION_TOOL_NAME} tool exactly once per turn. Never answer with plain prose instead of a tool call.

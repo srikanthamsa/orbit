@@ -13,6 +13,8 @@ export interface ActionCallInput {
   apiKey: string;
   initialMessage: string;
   steps: ProviderRequest['steps'];
+  /** Live page, kept out of the history so earlier messages stay cacheable. */
+  current?: ProviderRequest['current'];
   correction?: string;
   signal?: AbortSignal;
 }
@@ -33,10 +35,15 @@ export async function requestAction(input: ActionCallInput): Promise<ActionCallR
   const request: ProviderRequest = {
     system: `${SYSTEM_PROMPT}\n\nRuntime capability: ${visionNote}`,
     initialMessage: input.initialMessage,
-    steps: input.steps.map((step, index, all) => ({
-      ...step,
-      image: capabilities.vision && index === all.length - 1 ? step.image : undefined,
-    })),
+    steps: input.steps,
+    // On the first turn the snapshot already sits inside initialMessage, so the
+    // live page block is only needed once history exists.
+    current:
+      !input.current || input.steps.length === 0
+        ? undefined
+        : capabilities.vision
+          ? input.current
+          : { observation: input.current.observation },
     correction: input.correction,
     includeImages: capabilities.vision,
     signal: input.signal,

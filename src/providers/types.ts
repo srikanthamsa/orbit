@@ -8,7 +8,6 @@ export interface PromptStep {
   providerReasoning?: string;
   result: string;
   observation: string;
-  image?: string;
   status: StepStatus;
 }
 
@@ -16,6 +15,13 @@ export interface ProviderRequest {
   system: string;
   initialMessage: string;
   steps: PromptStep[];
+  /**
+   * The page as it stands now, kept out of the step history. History messages
+   * must never change after they are sent, or the provider's prompt cache is
+   * invalidated from the first changed byte; the live page therefore travels
+   * as its own trailing block.
+   */
+  current?: { observation: string; image?: string };
   correction?: string;
   includeImages: boolean;
   signal?: AbortSignal;

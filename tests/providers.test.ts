@@ -17,7 +17,6 @@ const steps: PromptStep[] = [
     providerReasoning: 'The first result matches the price ceiling, so open it.',
     result: 'Clicked el_4 “Sony WH-CH720N”.',
     observation: 'URL: https://shop.example/1\n[link] Add to cart',
-    image: 'data:image/jpeg;base64,AAAA',
     status: 'success',
   },
 ];
@@ -26,6 +25,10 @@ const request = {
   system: 'system prompt',
   initialMessage: 'OBJECTIVE: compare headphones',
   steps,
+  current: {
+    observation: 'URL: https://shop.example/2\n[link] Checkout',
+    image: 'data:image/jpeg;base64,AAAA',
+  },
   includeImages: true,
 };
 
@@ -48,7 +51,7 @@ describe('openai adapter', () => {
   });
 
   it('omits images when the model cannot see them', () => {
-    const body = buildOpenAIBody('deepseek-v4-pro', { ...request, includeImages: false, steps: steps.map((s) => ({ ...s, image: undefined })) }, false) as any;
+    const body = buildOpenAIBody('deepseek-v4-pro', { ...request, includeImages: false }, false) as any;
     expect(JSON.stringify(body)).not.toContain('image_url');
     expect(body.tool_choice).toBeUndefined();
   });
@@ -120,15 +123,78 @@ describe('openai adapter', () => {
   });
 });
 
+describe('prompt cache stability', () => {
+  const extra: PromptStep = {
+    id: 'step_2',
+    action: { type: 'scroll', direction: 'down' },
+    result: 'Scrolled down.',
+    observation: 'URL: https://shop.example/3',
+    status: 'success',
+  };
+
+  it('keeps every earlier message byte-identical when a step is appended', () => {
+    const first = buildOpenAIBody('gpt-4o', request, true) as any;
+    const second = buildOpenAIBody('gpt-4o', { ...request, steps: [...steps, extra] }, true) as any;
+    // Two messages are appended (tool call + result); the live page block moves
+    // to the end. Everything before it must be untouched.
+    expect(second.messages).toHaveLength(first.messages.length + 2);
+    for (let index = 0; index < first.messages.length - 1; index += 1) {
+      expect(second.messages[index]).toEqual(first.messages[index]);
+    }
+  });
+
+  it('does not carry the live page inside a history message', () => {
+    const body = buildOpenAIBody('gpt-4o', request, true) as any;
+    const toolMessage = body.messages.find((message: any) => message.role === 'tool');
+    expect(toolMessage.content).toContain('Add to cart');
+    expect(toolMessage.content).not.toContain('Checkout');
+    const tail = body.messages.at(-1).content as any;
+    const tailText: string = Array.isArray(tail) ? tail[0].text : tail;
+    expect(tailText).toContain('Checkout');
+  });
+
+  it('does not repeat the page on the first turn', async () => {
+    let body: any;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        body = JSON.parse(String(init.body));
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { tool_calls: [{ function: { arguments: '{"type":"finish","summary":"done"}' } }] } }],
+          }),
+          { status: 200 },
+        );
+      }),
+    );
+    const config: ProviderConfig = { id: 'p', provider: 'openai', model: 'gpt-4o' };
+    await requestAction({ config, apiKey: 'k', initialMessage: 'go', steps: [], current: request.current });
+    expect(body.messages).toHaveLength(2);
+    expect(body.messages[1].role).toBe('user');
+    expect(JSON.stringify(body.messages)).not.toContain('Checkout');
+  });
+
+  it('keeps the history identical in flat mode', () => {
+    const flat = (list: PromptStep[]) =>
+      String((buildOpenAIBody('deepseek-v4-pro', { ...request, steps: list, includeImages: false }, false) as any).messages.at(-1).content);
+    const first = flat(steps);
+    const second = flat([...steps, extra]);
+    const head = first.slice(0, first.indexOf('PAGE NOW'));
+    expect(second.startsWith(head)).toBe(true);
+  });
+});
+
 describe('anthropic adapter', () => {
   it('builds alternating tool_use and tool_result blocks', () => {
     const messages = buildAnthropicMessages(request);
-    expect(messages).toHaveLength(3);
+    // initial turn, tool_use, tool_result, then the live page block with its image
+    expect(messages).toHaveLength(4);
     expect(messages[1].role).toBe('assistant');
     expect((messages[1].content as any[]).some((b) => b.type === 'tool_use')).toBe(true);
     expect(messages[2].role).toBe('user');
     expect((messages[2].content as any[])[0].type).toBe('tool_result');
-    expect((messages[2].content as any[])[1].type).toBe('image');
+    expect((messages[3].content as any[])[0].type).toBe('text');
+    expect((messages[3].content as any[])[1].type).toBe('image');
   });
 
   it('includes the browser access header and forces the tool', () => {
@@ -154,7 +220,7 @@ describe('gemini adapter', () => {
     expect((contents[1].parts[0] as any).functionCall.name).toBe('orbit_action');
     expect(contents[2].role).toBe('user');
     expect((contents[2].parts[0] as any).functionResponse.name).toBe('orbit_action');
-    expect((contents[2].parts[1] as any).inlineData.mimeType).toBe('image/jpeg');
+    expect((contents[3].parts[1] as any).inlineData.mimeType).toBe('image/jpeg');
   });
 
   it('strips unsupported JSON schema keys', () => {
@@ -217,7 +283,13 @@ describe('requestAction', () => {
       }),
     );
     const config: ProviderConfig = { id: 'p', provider: 'deepseek', model: 'deepseek-flash' };
-    const result = await requestAction({ config, apiKey: 'k', initialMessage: 'go', steps });
+    const result = await requestAction({
+      config,
+      apiKey: 'k',
+      initialMessage: 'go',
+      steps,
+      current: request.current,
+    });
     expect(result.action.type).toBe('finish');
     expect(JSON.stringify(body)).toContain('image_url');
   });

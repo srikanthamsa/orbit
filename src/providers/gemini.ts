@@ -50,9 +50,12 @@ export function buildGeminiContents(req: ProviderRequest): Array<{ role: 'user' 
         },
       },
     ];
-    if (req.includeImages && step.image) {
-      const image = inlineImage(step.image);
-      parts.push({ inlineData: image });
+    contents.push({ role: 'user', parts });
+  }
+  if (req.current) {
+    const parts: Part[] = [{ text: `Page now:\n${req.current.observation}` }];
+    if (req.includeImages && req.current.image) {
+      parts.push({ inlineData: inlineImage(req.current.image) });
     }
     contents.push({ role: 'user', parts });
   }
