@@ -112,25 +112,29 @@ export function Workspace() {
       </div>
 
       {awaitingDecision || paused || busy ? (
-        <div className="mt-3 flex items-center gap-1.5">
-          {awaitingDecision ? null : paused ? (
-            <Button size="sm" onClick={resume}>
-              <Play size={12} /> Resume
+        <div className="mt-3">
+          <div className="flex items-center gap-1.5">
+            {awaitingDecision ? null : paused ? (
+              <Button size="sm" onClick={resume}>
+                <Play size={12} /> Resume
+              </Button>
+            ) : (
+              <Button size="sm" onClick={pause}>
+                <Pause size={12} /> Pause
+              </Button>
+            )}
+            <Button size="sm" variant="danger" onClick={stop}>
+              <Square size={11} /> Stop
             </Button>
-          ) : (
-            <Button size="sm" onClick={pause}>
-              <Pause size={12} /> Pause
-            </Button>
-          )}
-          <Button size="sm" variant="danger" onClick={stop}>
-            <Square size={11} /> Stop
-          </Button>
-          <span className="ml-auto">
+          </div>
+          {/* The action gets its own line: a shimmering sentence needs room. */}
+          <div className="mt-1.5 min-w-0">
             <AgentPhaseLabel
               phase={awaitingDecision ? 'waiting' : paused ? 'paused' : currentAction ? 'working' : 'thinking'}
               detail={busy && !paused && !awaitingDecision ? currentAction ?? undefined : undefined}
+              wide
             />
-          </span>
+          </div>
         </div>
       ) : null}
 

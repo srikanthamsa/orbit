@@ -613,29 +613,3 @@ textarea {
   }
 }
 
-/* A light sweeping across the label, the way a cursor blinks: movement only,
-   never a colour change, so it stays quiet at the edge of vision. */
-.phase-shimmer {
-  background-image: linear-gradient(
-    100deg,
-    var(--fg) 0%,
-    var(--fg) 38%,
-    color-mix(in srgb, var(--fg) 42%, transparent) 50%,
-    var(--fg) 62%,
-    var(--fg) 100%
-  );
-  background-size: 220% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: phase-sweep 2.2s linear infinite;
-}
-
-@keyframes phase-sweep {
-  from {
-    background-position: 120% 0;
-  }
-  to {
-    background-position: -120% 0;
-  }
-}

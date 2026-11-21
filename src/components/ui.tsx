@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { TextShimmer } from './wensity/text-shimmer';
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -509,6 +510,9 @@ export function StepMark({ status }: { status: 'success' | 'failed' | 'rejected'
 
 export type AgentPhase = 'thinking' | 'working' | 'waiting' | 'paused';
 
+const trimTo = (value: string, limit: number): string =>
+  value.length <= limit ? value : `${value.slice(0, limit - 1).trimEnd()}…`;
+
 const PHASE_COPY: Record<AgentPhase, string> = {
   thinking: 'Thinking',
   working: 'Working',
@@ -520,11 +524,21 @@ const PHASE_COPY: Record<AgentPhase, string> = {
  * What the agent is doing this second. Deliberately the only moving thing on a
  * running screen, so the eye lands on it and nothing competes.
  */
-export function AgentPhaseLabel({ phase, detail }: { phase: AgentPhase; detail?: string }) {
+export function AgentPhaseLabel({
+  phase,
+  detail,
+  wide = false,
+}: {
+  phase: AgentPhase;
+  detail?: string;
+  /** Full width line: the shimmer gets the whole row instead of a clipped sliver. */
+  wide?: boolean;
+}) {
   const active = phase === 'thinking' || phase === 'working';
   // The header already names the state, so while acting this line says *what*
   // is happening instead of repeating "Working".
   const label = phase === 'working' && detail ? detail : PHASE_COPY[phase];
+  const shimmerText = phase === 'thinking' ? `${label}…` : label;
   return (
     <span className="flex min-w-0 items-center gap-2">
       <span className="phase-dots" aria-hidden data-live={active ? '' : undefined}>
@@ -532,14 +546,23 @@ export function AgentPhaseLabel({ phase, detail }: { phase: AgentPhase; detail?:
         <i />
         <i />
       </span>
-      <span
-        className={
-          active ? 'phase-shimmer min-w-0 truncate text-caption' : 'min-w-0 truncate text-caption text-muted'
-        }
-        title={label}
-      >
-        {phase === 'thinking' ? `${label}…` : label}
-      </span>
+      {active ? (
+        // The Wensity shimmer paints a moving band through the text; it needs
+        // the whole string, so the line is trimmed to fit rather than clipped.
+        <TextShimmer
+          text={trimTo(shimmerText, wide ? 52 : 24)}
+          duration={2.6}
+          spread={16}
+          baseColor="var(--muted)"
+          shimmerColor="var(--fg)"
+          className="whitespace-nowrap text-caption"
+          paused={false}
+        />
+      ) : (
+        <span className="min-w-0 truncate text-caption text-muted" title={label}>
+          {label}
+        </span>
+      )}
     </span>
   );
 }
