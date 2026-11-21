@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="ORBIT running in the Chrome side panel" width="100%" />
+  <img src="docs/screenshots/hero-white.jpg" alt="ORBIT in the Chrome side panel: a question, the steps it took, and the answer" width="100%" />
 </p>
 
 <p align="center">
@@ -57,13 +57,19 @@ Most browser AI stops at "here is what you could do." ORBIT does the thing — t
 
 ## Screenshots
 
-| Say what you need | Watch every move | Approve what matters |
-| --- | --- | --- |
-| ![Home](store/screenshots/01-hero.png) | ![Running a task](store/screenshots/02-watching.png) | ![Approval](store/screenshots/04-approval.png) |
+<p align="center">
+  <img src="docs/screenshots/panel-trace.jpg" alt="A step opened: the reasoning, the result, what it clicked" width="49%" />
+  &nbsp;
+  <img src="docs/screenshots/panel-running.jpg" alt="While it works: the live action and the steps behind it" width="49%" />
+</p>
 
-| Answers you can read | Your key, your browser |
-| --- | --- |
-| ![Answer with a table and a chart](store/screenshots/03-answer.png) | ![Bring your own model](store/screenshots/05-trust.png) |
+<p align="center">
+  <img src="docs/screenshots/panel-answer.jpg" alt="The answer, with the question it came from" width="49%" />
+</p>
+
+Every step collapses to one line and opens to what it thought and what it found, so a
+twenty-step run reads as a short list instead of a wall of text. The shots above are
+captures of the real panel, not mockups.
 
 ## Install
 
