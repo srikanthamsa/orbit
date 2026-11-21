@@ -44,11 +44,12 @@ const history: TaskRecord[] = [
   {
     id: 'r2',
     objective: 'Find 20 remote product manager jobs and compile them',
-    status: 'failed',
-    stepCount: 7,
+    status: 'completed',
+    summary: 'Twenty roles, with links and salaries.',
+    stepCount: 14,
     createdAt: now - 1000 * 60 * 60 * 20,
     completedAt: now - 1000 * 60 * 60 * 19,
-    costUsd: 0.04,
+    costUsd: 0.07,
     provider: 'anthropic',
     model: 'claude-sonnet-4-5',
   },
@@ -220,9 +221,9 @@ if (demo === 'workspace') {
     approval: {
       id: 'a1',
       kind: 'sensitive',
-      title: 'Buy Sony WH-CH720N',
+      title: 'Buy the JBL Tune 770NC',
       detail:
-        'This checkout would place an order for ₹8,990 on Amazon.in using the saved address and payment method.',
+        'This checkout would place an order for ₹6,999 on Amazon.in using the saved address and the card ending 4417.',
       origin: 'https://www.amazon.in/checkout',
       actionLabel: 'Buy now',
       stepIndex: 6,
@@ -241,7 +242,7 @@ if (demo === 'workspace') {
       { turn: 5, hit: 17575, miss: 2980, attempt: 0, prefix: 't#5' },
     ],
     summary:
-      'Top five wireless headphones under ₹15,000:\n\n1. Sony WH-CH720N — ₹8,990, 4.3★, 35h battery, 192g\n2. JBL Tune 770NC — ₹6,999, 4.2★, 70h battery\n3. boAt Nirvana Ion — ₹1,499, 4.1★, 120h with case\n4. OnePlus Bullets Wireless Z2 — ₹1,799, 4.2★, 30h\n5. Noise Buds VS104 — ₹1,199, 4.0★, 45h\n\nSony leads on comfort and ANC; JBL wins on battery; boAt and Noise are the budget picks. Prices from Amazon.in today.',
+      'The JBL Tune 770NC is the one for flights: 70 hours of battery for ₹6,999, twice the Sony at ₹2,000 less. The Sony sounds better and cancels more noise, so it stays the pick if comfort matters more than price.',
   });
 } else if (demo === 'firstrun') {
   useAgentStore.setState({
@@ -272,40 +273,41 @@ if (demo === 'workspace') {
   });
 } else if (demo === 'genui') {
   seedWorkspace({
-    task: { ...task, status: 'completed', objective: 'Compare five wireless headphones under 15,000' },
+    task: { ...task, status: 'completed', objective: 'Compare five wireless headphones under ₹15,000' },
     currentAction: null,
-    summary: 'Sony leads on comfort and noise cancelling, JBL on battery. Prices from Amazon.in today.',
+    summary:
+      'The JBL Tune 770NC is the one for flights: 70 hours of battery for ₹6,999, twice the Sony at ₹2,000 less. The Sony sounds better and cancels more noise, so it stays the pick if comfort matters more than price.',
     summaryBlocks: [
       {
         type: 'table',
-        title: 'Headphones under ₹15,000',
+        title: 'Over-ear headphones under ₹15,000',
         columns: ['Model', 'Price', 'Rating', 'Battery'],
         rows: [
-          ['Sony WH-CH720N', '₹8,990', '4.3', '35 h'],
+          ['boAt Rockerz 550', '₹1,999', '3.9', '20 h'],
+          ['Noise New Era', '₹2,499', '3.8', '50 h'],
           ['JBL Tune 770NC', '₹6,999', '4.2', '70 h'],
-          ['boAt Nirvana Ion', '₹1,499', '4.1', '120 h'],
-          ['OnePlus Bullets Z2', '₹1,799', '4.2', '30 h'],
-          ['Noise Buds VS104', '₹1,199', '4.0', '45 h'],
+          ['Soundcore Space One', '₹7,499', '4.2', '40 h'],
+          ['Sony WH-CH720N', '₹8,990', '4.3', '35 h'],
         ],
       },
       {
         type: 'chart',
-        title: 'Battery life',
+        title: 'Battery on one charge',
         chart: 'bar',
         unit: ' h',
         data: [
-          { label: 'Sony', value: 35 },
+          { label: 'boAt', value: 20 },
+          { label: 'Noise', value: 50 },
           { label: 'JBL', value: 70 },
-          { label: 'boAt', value: 120 },
-          { label: 'OnePlus', value: 30 },
-          { label: 'Noise', value: 45 },
+          { label: 'Soundcore', value: 40 },
+          { label: 'Sony', value: 35 },
         ],
       },
       {
         type: 'stats',
         items: [
-          { label: 'Cheapest', value: '₹1,199', hint: 'Noise Buds VS104' },
-          { label: 'Longest battery', value: '120 h', hint: 'boAt Nirvana Ion' },
+          { label: 'Best for flights', value: '70 h', hint: 'JBL Tune 770NC · ₹6,999' },
+          { label: 'Best noise cancelling', value: '4.3 ★', hint: 'Sony WH-CH720N · ₹8,990' },
         ],
       },
     ],
@@ -348,14 +350,12 @@ if (demo === 'workspace') {
     task: {
       ...task,
       status: 'completed',
-      objective: 'Give me all the DLC app ids for Road Redemption',
-      turns: [
-        { text: 'just the ids, nothing else', at: now - 1000 * 35 },
-        { text: 'Which of those are actual store pages?', at: now - 1000 * 12 },
-      ],
+      objective: 'Find the best wireless headphones under ₹15,000 for long flights',
+      turns: [{ text: 'Which one is quietest on a plane?', at: now - 1000 * 12 }],
     },
     currentAction: null,
-    summary: 'Three of the six have their own store page: 1180010, 727050 and 727440.',
+    summary:
+      'The Sony WH-CH720N. Its noise cancelling cuts engine drone further than the JBL, and it stays comfortable for the whole flight — it is ₹2,000 more, which is what the quiet costs.',
   });
 } else if (demo === 'limit') {
   seedWorkspace({

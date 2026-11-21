@@ -44,8 +44,8 @@ async function shot(demo, file, prepare, viewport = 900) {
   console.log(file, `400x${height}`);
 }
 
-// 1 · the greeting, the composer, the history — short so the greeting is not
-// floating in dead space
+// 1 · the greeting, the composer, the history. Below 640 the history slides
+// under the composer, so this is the shortest viewport that still holds.
 await shot('home', '01-home.png', null, 640);
 // 2 · mid-run: live action, collapsed steps, pause and stop
 await shot('workspace', '02-running.png');
