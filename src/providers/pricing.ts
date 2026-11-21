@@ -6,6 +6,18 @@ interface PriceRow {
   outputPerM: number;
 }
 
+/**
+ * Cached input is billed far below list, and the discount differs by vendor:
+ * DeepSeek and Anthropic charge about a tenth of the input rate for a cache
+ * read, Gemini about a quarter, OpenAI a half.
+ */
+export function cachedRateFor(model: string, inputPerM: number): number {
+  const name = model.toLowerCase();
+  if (name.includes('deepseek') || name.includes('claude')) return inputPerM * 0.1;
+  if (name.includes('gemini')) return inputPerM * 0.25;
+  return inputPerM * 0.5;
+}
+
 /** Approximate public list prices, USD per million tokens. Estimates only. */
 const PRICES: PriceRow[] = [
   { match: 'gpt-5-mini', inputPerM: 0.25, outputPerM: 2 },
@@ -45,18 +57,24 @@ export function priceFor(model: string): PriceRow | null {
 export function estimateCost(model: string, usage: Usage): number | undefined {
   const price = priceFor(model);
   if (!price) return undefined;
-  const uncachedInput = Math.max(0, usage.inputTokens - (usage.cachedTokens ?? 0));
+  const cachedTokens = usage.cachedTokens ?? 0;
+  const uncachedInput = Math.max(0, usage.inputTokens - cachedTokens);
+  const cachedRate = cachedRateFor(model, price.inputPerM);
   const inputCost = (uncachedInput / 1_000_000) * price.inputPerM;
-  const cachedCost = ((usage.cachedTokens ?? 0) / 1_000_000) * price.inputPerM * 0.5;
+  const cachedCost = (cachedTokens / 1_000_000) * cachedRate;
   const outputCost = (usage.outputTokens / 1_000_000) * price.outputPerM;
   return inputCost + cachedCost + outputCost;
 }
 
 export function addUsage(a: Usage, b: Usage, model: string): Usage {
+  const hit = (a.cacheHitTokens ?? 0) + (b.cacheHitTokens ?? 0);
+  const miss = (a.cacheMissTokens ?? 0) + (b.cacheMissTokens ?? 0);
   const merged: Usage = {
     inputTokens: a.inputTokens + b.inputTokens,
     outputTokens: a.outputTokens + b.outputTokens,
     cachedTokens: (a.cachedTokens ?? 0) + (b.cachedTokens ?? 0) || undefined,
+    cacheHitTokens: hit || undefined,
+    cacheMissTokens: hit || miss ? miss : undefined,
   };
   merged.costUsd = (a.costUsd ?? 0) + (b.costUsd ?? estimateCost(model, b) ?? 0);
   return merged;

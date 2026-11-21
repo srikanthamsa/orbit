@@ -48,9 +48,23 @@ export interface Credentials {
   apiKey: string;
 }
 
+/** One API request, as far as prompt caching is concerned. */
+export interface CacheTurn {
+  turn: number;
+  hit: number;
+  miss: number;
+  attempt: number;
+  /** Stable identity of the transcript that was sent: two equal prefixes can share a cache. */
+  prefix: string;
+}
+
 export interface Usage {
   inputTokens: number;
   outputTokens: number;
+  /** Tokens the provider served from its prompt cache (billed cheaper). */
+  cacheHitTokens?: number;
+  /** Input tokens that missed the cache. */
+  cacheMissTokens?: number;
   cachedTokens?: number;
   costUsd?: number;
 }

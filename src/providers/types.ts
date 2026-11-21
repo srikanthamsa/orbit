@@ -8,6 +8,7 @@ export interface PromptStep {
   providerReasoning?: string;
   result: string;
   observation: string;
+  image?: string;
   status: StepStatus;
 }
 
@@ -66,10 +67,24 @@ export function extractJsonObject(text: string): unknown {
   }
 }
 
-export function toUsage(inputTokens = 0, outputTokens = 0, cachedTokens = 0): Usage {
+export function toUsage(
+  inputTokens = 0,
+  outputTokens = 0,
+  cachedTokens = 0,
+  cacheMissTokens?: number,
+): Usage {
+  const hit = Number.isFinite(cachedTokens) && cachedTokens > 0 ? cachedTokens : 0;
+  const miss =
+    cacheMissTokens !== undefined && Number.isFinite(cacheMissTokens)
+      ? Math.max(0, cacheMissTokens)
+      : hit > 0
+        ? Math.max(0, (inputTokens || 0) - hit)
+        : undefined;
   return {
     inputTokens: Number.isFinite(inputTokens) ? inputTokens : 0,
     outputTokens: Number.isFinite(outputTokens) ? outputTokens : 0,
-    cachedTokens: cachedTokens || undefined,
+    cachedTokens: hit ? hit : undefined,
+    cacheHitTokens: hit ? hit : undefined,
+    cacheMissTokens: miss,
   };
 }

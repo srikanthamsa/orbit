@@ -76,37 +76,43 @@ describe('openai adapter', () => {
     });
     expect(parsed.rawAction).toMatchObject({ type: 'finish' });
     expect(parsed.providerReasoning).toBe('I need to finish.');
-    expect(parsed.usage).toEqual({ inputTokens: 100, outputTokens: 20, cachedTokens: 10 });
+    expect(parsed.usage).toMatchObject({ inputTokens: 100, outputTokens: 20, cachedTokens: 10, cacheHitTokens: 10 });
   });
 
-  it('sends DeepSeek history as flat text so thinking-mode replay can never fail', () => {
+  it('builds an append-only DeepSeek transcript that the next turn can extend', () => {
     const config: ProviderConfig = { id: 'p', provider: 'deepseek', model: 'deepseek-flash' };
     const shape = buildOpenAIRequest(config, 'key', request) as any;
     const roles = shape.body.messages.map((message: any) => message.role);
-    expect(roles).toEqual(['system', 'user']);
-    expect(JSON.stringify(shape.body)).not.toContain('reasoning_content');
+    // system, objective, then one turn per step, then the page the model acts on
+    expect(roles).toEqual(['system', 'user', 'assistant', 'user', 'user']);
     expect(JSON.stringify(shape.body)).not.toContain('"role":"tool"');
 
-    const content = shape.body.messages[1].content;
-    const text = (Array.isArray(content) ? content[0].text : content) as string;
-    expect(text).toContain('HISTORY');
-    expect(text).toContain('"type":"click"');
-    expect(text).toContain('Clicked el_4');
-    expect(text).toContain('Add to cart');
-    expect(text).toContain('Continue from the page state');
-
-    const corrected = buildOpenAIRequest(config, 'key', { ...request, correction: 'Try again.' }) as any;
-    const correctedContent = corrected.body.messages[1].content;
-    const correctedText = Array.isArray(correctedContent) ? correctedContent[0].text : correctedContent;
-    expect(correctedText).toContain('Try again.');
-
-    const openai = buildOpenAIRequest(
-      { id: 'p', provider: 'openai', model: 'gpt-4o' },
-      'key',
-      request,
-    ) as any;
-    expect(openai.body.messages.some((message: any) => message.role === 'tool')).toBe(true);
+    const [system, objective, action, page, live] = shape.body.messages;
+    expect(system.content).toBe('system prompt');
+    expect(objective.content).toContain('OBJECTIVE: compare headphones');
+    expect(action.content).toContain('"type":"click"');
+    expect(action.content).toContain('Clicked el_4');
+    expect(page.content).toContain('Add to cart');
+    expect(live.content).toContain('Checkout');
   });
+
+  it('does not repeat the page when it is unchanged, so the request only extends', () => {
+    const config: ProviderConfig = { id: 'p', provider: 'deepseek', model: 'deepseek-flash' };
+    const steps = [
+      {
+        ...request.steps[0],
+        observation: 'URL: https://shop.example/1\n[link] Add to cart',
+      },
+    ];
+    const shape = buildOpenAIRequest(config, 'key', {
+      ...request,
+      steps,
+      current: { observation: 'URL: https://shop.example/1\n[link] Add to cart' },
+    }) as any;
+    const roles = shape.body.messages.map((message: any) => message.role);
+    expect(roles).toEqual(['system', 'user', 'assistant', 'user']);
+  });
+
 
   it('falls back to JSON inside prose', () => {
     const parsed = parseOpenAI({
@@ -287,7 +293,7 @@ describe('requestAction', () => {
       config,
       apiKey: 'k',
       initialMessage: 'go',
-      steps,
+      steps: [{ ...steps[0], image: 'data:image/png;base64,AAA' }],
       current: request.current,
     });
     expect(result.action.type).toBe('finish');

@@ -6,7 +6,12 @@ import { ACTION_TOOL_NAME } from './schema';
  * Characters of page digest kept per completed step. Applied to every step
  * identically, at read time, so a step's text is the same on every later turn.
  */
-export const STEP_OBSERVATION_LIMIT = 1200;
+/**
+ * A step keeps the page it produced, so the next request can extend the
+ * previous one instead of rewriting its tail. This is a safety cap for
+ * pathological pages, not a summarisation: it must not clip a normal digest.
+ */
+export const STEP_OBSERVATION_LIMIT = 9000;
 
 export const SYSTEM_PROMPT = `You are ORBIT, an autonomous agent operating the user's Chrome tab.
 

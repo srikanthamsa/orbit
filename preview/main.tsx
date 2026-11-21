@@ -232,6 +232,14 @@ if (demo === 'workspace') {
   seedWorkspace({
     task: { ...task, status: 'completed' },
     currentAction: null,
+    cacheTurns: [
+      { turn: 0, hit: 0, miss: 5480, attempt: 0, prefix: 't#0' },
+      { turn: 1, hit: 5480, miss: 3120, attempt: 0, prefix: 't#1' },
+      { turn: 2, hit: 8600, miss: 3210, attempt: 0, prefix: 't#2' },
+      { turn: 3, hit: 11810, miss: 2860, attempt: 0, prefix: 't#3' },
+      { turn: 4, hit: 14670, miss: 2905, attempt: 0, prefix: 't#4' },
+      { turn: 5, hit: 17575, miss: 2980, attempt: 0, prefix: 't#5' },
+    ],
     summary:
       'Top five wireless headphones under ₹15,000:\n\n1. Sony WH-CH720N — ₹8,990, 4.3★, 35h battery, 192g\n2. JBL Tune 770NC — ₹6,999, 4.2★, 70h battery\n3. boAt Nirvana Ion — ₹1,499, 4.1★, 120h with case\n4. OnePlus Bullets Wireless Z2 — ₹1,799, 4.2★, 30h\n5. Noise Buds VS104 — ₹1,199, 4.0★, 45h\n\nSony leads on comfort and ANC; JBL wins on battery; boAt and Noise are the budget picks. Prices from Amazon.in today.',
   });

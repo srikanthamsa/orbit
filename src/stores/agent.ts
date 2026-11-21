@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   AgentStatus,
   AnswerBlock,
+  CacheTurn,
   AgentStep,
   AgentTask,
   ApprovalRequest,
@@ -74,6 +75,7 @@ export interface AgentStore {
   approval: ApprovalRequest | null;
   summary: string | null;
   summaryBlocks: AnswerBlock[] | null;
+  cacheTurns: CacheTurn[];
   error: string | null;
   paused: boolean;
   settings: Settings;
@@ -122,6 +124,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   approval: null,
   summary: null,
   summaryBlocks: null,
+  cacheTurns: [],
   error: null,
   paused: false,
   settings: DEFAULT_SETTINGS,
@@ -285,6 +288,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       approval: null,
       summary: null,
       summaryBlocks: null,
+      cacheTurns: [],
       error: null,
       paused: false,
       history: await loadHistory(),
@@ -348,6 +352,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       task: nextTask,
       summary: null,
       summaryBlocks: null,
+      cacheTurns: [],
       error: null,
       approval: null,
       paused: false,
@@ -634,6 +639,9 @@ async function runSequence(input: RunSequenceInput): Promise<void> {
         break;
       case 'usage':
         set({ usage: event.usage });
+        break;
+      case 'cache':
+        set({ cacheTurns: [...get().cacheTurns, event] });
         break;
       case 'checkpoint':
         set({ checkpoint: event.checkpoint });

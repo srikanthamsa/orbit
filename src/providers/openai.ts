@@ -5,6 +5,7 @@ import {
   extractJsonObject,
   ProviderError,
   toUsage,
+  type PromptStep,
   type ProviderRequest,
   type ProviderResponse,
   type RequestShape,
@@ -106,15 +107,70 @@ function flatMessages(req: ProviderRequest): Record<string, unknown>[] {
   return messages;
 }
 
+/**
+ * DeepSeek's disk cache persists a "cache prefix unit" at the end of each
+ * request's input, and a later request only hits when it fully matches one.
+ * That means the transcript must be a strict extension of the previous request,
+ * byte for byte, with nothing rewritten at the end.
+ *
+ * So: the system message and the opening objective are immutable, every step
+ * is one assistant turn (action + result) followed by one user turn (the page
+ * that action produced), and the page the model is looking at now is that same
+ * last page turn. When nothing has changed since, no extra message is appended
+ * at all, which is what keeps the prefix intact.
+ */
+function pageTurn(observation: string, image?: string): Record<string, unknown> {
+  const text = `PAGE:\n${observation}`;
+  return image
+    ? {
+        role: 'user',
+        content: [
+          { type: 'text', text },
+          { type: 'image_url', image_url: { url: image, detail: 'low' } },
+        ],
+      }
+    : { role: 'user', content: text };
+}
+
+function stepTurn(step: PromptStep, index: number): string {
+  const status = step.status === 'success' ? '' : ` (${step.status})`;
+  const lines = [`STEP ${index + 1}`, `ACTION: ${JSON.stringify(stripEmpty({ ...step.action }))}${status}`];
+  if (step.reasoning) lines.push(`WHY: ${step.reasoning}`);
+  lines.push(`RESULT: ${step.result}`);
+  return lines.join('\n');
+}
+
+export function deepseekMessages(req: ProviderRequest): Record<string, unknown>[] {
+  const messages: Record<string, unknown>[] = [
+    { role: 'system', content: req.system },
+    { role: 'user', content: req.initialMessage },
+  ];
+  for (const [index, step] of req.steps.entries()) {
+    messages.push({ role: 'assistant', content: stepTurn(step, index) });
+    messages.push(pageTurn(step.observation, req.includeImages ? step.image : undefined));
+  }
+  const last = req.steps[req.steps.length - 1];
+  const live = req.current?.observation;
+  // The live page is only new when it differs from the page the last step
+  // already produced. Re-sending an identical copy would move the cacheable
+  // end of the request and cost a full miss for nothing.
+  if (live && (!last || last.observation !== live)) {
+    messages.push(pageTurn(live));
+  }
+  if (req.correction) messages.push({ role: 'user', content: req.correction });
+  return messages;
+}
+
 export function buildOpenAIBody(
   model: string,
   req: ProviderRequest,
   forceTool: boolean,
   flatHistory = false,
+  transcript = false,
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
     model,
-    messages: flatHistory ? flatMessages(req) : nativeMessages(req),
+    messages: transcript ? deepseekMessages(req) : flatHistory ? flatMessages(req) : nativeMessages(req),
     tools: [
       {
         type: 'function',
@@ -144,9 +200,10 @@ export function buildOpenAIRequest(
       config.model,
       req,
       config.provider === 'openai',
-      // DeepSeek's thinking mode rejects native tool-call replays; compatible
-      // proxies are often DeepSeek under the hood, so they use the same path.
-      config.provider === 'deepseek' || config.provider === 'compatible',
+      // Compatible proxies are often DeepSeek under the hood and reject native
+      // tool-call replays, so they keep the single-message history path.
+      config.provider === 'compatible',
+      config.provider === 'deepseek',
     ),
   };
 }
@@ -163,6 +220,8 @@ interface OpenAIResponse {
     prompt_tokens?: number;
     completion_tokens?: number;
     prompt_tokens_details?: { cached_tokens?: number };
+    prompt_cache_hit_tokens?: number;
+    prompt_cache_miss_tokens?: number;
   };
   error?: { message?: string };
 }
@@ -186,7 +245,8 @@ export function parseOpenAI(json: OpenAIResponse): Omit<ProviderResponse, 'actio
     usage: toUsage(
       json.usage?.prompt_tokens ?? 0,
       json.usage?.completion_tokens ?? 0,
-      json.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+      json.usage?.prompt_cache_hit_tokens ?? json.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+      json.usage?.prompt_cache_miss_tokens,
     ),
   };
 }

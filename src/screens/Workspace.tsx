@@ -29,6 +29,7 @@ export function Workspace() {
   const approval = useAgentStore((s) => s.approval);
   const summary = useAgentStore((s) => s.summary);
   const summaryBlocks = useAgentStore((s) => s.summaryBlocks);
+  const cacheTurns = useAgentStore((s) => s.cacheTurns);
   const error = useAgentStore((s) => s.error);
   const paused = useAgentStore((s) => s.paused);
   const screenshot = useAgentStore((s) => s.screenshot);
@@ -66,6 +67,12 @@ export function Workspace() {
   const visibleEntries = showAllSteps ? entries : entries.slice(-3);
   const hiddenEntries = entries.length - visibleEntries.length;
   const tokenCount = usage.inputTokens + usage.outputTokens;
+  const cacheHit = cacheTurns.reduce((sum, turn) => sum + turn.hit, 0);
+  const cacheMiss = cacheTurns.reduce((sum, turn) => sum + turn.miss, 0);
+  const cacheRate = cacheHit + cacheMiss > 0 ? Math.round((cacheHit / (cacheHit + cacheMiss)) * 100) : null;
+  const cacheDetail = cacheTurns
+    .map((turn) => `step ${turn.turn + 1}: ${turn.hit} hit / ${turn.miss} miss${turn.attempt ? ' (retry)' : ''}`)
+    .join('\n');
   const costLabel = usage.costUsd !== undefined ? `${formatUsd(usage.costUsd)} est.` : 'cost n/a';
 
   const active = providers.find((p) => p.id === settings.activeProviderId);
@@ -330,9 +337,11 @@ export function Workspace() {
       ) : null}
 
       <div className="mt-4 flex items-center justify-between text-micro text-faint">
-        <span>
+        <span title={cacheDetail}>
           {tokenCount > 0
-            ? `${tokenCount.toLocaleString()} tokens · ${costLabel}`
+            ? `${tokenCount.toLocaleString()} tokens · ${costLabel}${
+                cacheRate !== null ? ` · ${cacheRate}% cached` : ''
+              }`
             : 'No model usage yet'}
         </span>
 

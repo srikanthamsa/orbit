@@ -40,6 +40,14 @@ export type AgentEvent =
   | { type: 'step'; step: AgentStep }
   | { type: 'screenshot'; dataUrl: string }
   | { type: 'usage'; usage: Usage }
+  | {
+      type: 'cache';
+      turn: number;
+      hit: number;
+      miss: number;
+      attempt: number;
+      prefix: string;
+    }
   | { type: 'checkpoint'; checkpoint: TaskCheckpoint };
 
 export interface RunInput {
@@ -200,6 +208,7 @@ function toPromptSteps(steps: AgentStep[]): PromptStep[] {
     providerReasoning: step.providerReasoning,
     result: `${step.result}${step.status === 'rejected' ? ' (denied by user)' : ''}`,
     observation: truncate(step.observation, STEP_OBSERVATION_LIMIT),
+    image: step.image,
     status: step.status,
   }));
 }
@@ -432,9 +441,21 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
         }
       }
       if (!outcome) throw new Error('The model did not produce an action.');
+      const attemptUsed = correction ? 1 : 0;
       stallNotice = null;
       usage = addUsage(usage, outcome.usage, provider.model);
       emit({ type: 'usage', usage });
+      emit({
+        type: 'cache',
+        turn: index,
+        hit: outcome.usage.cacheHitTokens ?? 0,
+        miss: outcome.usage.cacheMissTokens ?? Math.max(0, outcome.usage.inputTokens - (outcome.usage.cacheHitTokens ?? 0)),
+        attempt: attemptUsed,
+        // Identity of the transcript end this request submitted. Two requests
+        // with the same prefix should share a cache; a differing one is the
+        // moment reuse broke.
+        prefix: `${task.id}#${steps.length}`,
+      });
 
       const action = outcome.action;
       if (action.type === 'finish') {
