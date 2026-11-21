@@ -12,6 +12,31 @@
 --------------------------------------------------------------------------- */
 
 :root,
+/* The dark canvas is a lit surface, not a void: two low washes give the glass
+   something to refract. Fixed so it never scrolls with the transcript. */
+[data-theme='dark'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 80% at 18% -10%, rgba(64, 92, 160, 0.20) 0%, transparent 62%),
+    radial-gradient(ellipse 90% 70% at 100% 108%, rgba(96, 74, 150, 0.16) 0%, transparent 66%),
+    linear-gradient(180deg, #0c0d12 0%, #09090c 55%, #0a0a0e 100%);
+  z-index: 0;
+}
+
+[data-theme='light'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 80% at 16% -12%, rgba(120, 160, 255, 0.10) 0%, transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f7f7fa 100%);
+  z-index: 0;
+}
+
 [data-theme='dark'] {
   --canvas: #0b0b0d;
   --chrome: #0e0e11;
@@ -605,3 +630,29 @@ textarea {
   }
 }
 
+
+/* Frosted surface: translucent fill, blurred backdrop, a lit top edge. The
+   washes behind it come from body::before, which is what makes the
+   translucency readable instead of a grey rectangle. */
+.glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0.045) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 28px -18px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme='light'] .glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.72) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 28px -18px rgba(20, 24, 45, 0.2);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

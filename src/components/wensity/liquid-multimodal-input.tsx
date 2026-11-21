@@ -196,7 +196,7 @@ export function LiquidMultimodalInput({
           className={cn(
             "group relative isolate flex w-full flex-col gap-2 overflow-hidden rounded-[28px] p-3 transition-all duration-150 ease-in-out",
             // Light Mode Styles
-            "border border-line bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,var(--field)_0%,var(--canvas)_72%)]",
+            "glass border border-line/70",
             "shadow-[0_1px_2px_rgba(0,0,0,.06),0_8px_24px_-12px_rgba(0,0,0,.08)]",
             "hover:border-line-strong focus-within:border-accent-line",
             // Dark Mode Styles
@@ -223,7 +223,7 @@ export function LiquidMultimodalInput({
           {/* Animated Gradient Thin Inner Edge (1px) */}
           <div
             aria-hidden
-            className="lmi-border pointer-events-none absolute inset-0 z-10 rounded-[28px] opacity-50 transition-opacity duration-500 group-focus-within:opacity-100 group-hover:opacity-100"
+            className="lmi-border pointer-events-none absolute inset-0 z-10 rounded-[28px] opacity-30 transition-opacity duration-500 group-focus-within:opacity-70 group-hover:opacity-60"
             style={{
               padding: "1px",
               WebkitMask:
@@ -231,7 +231,7 @@ export function LiquidMultimodalInput({
               WebkitMaskComposite: "xor",
               maskComposite: "exclude",
               background:
-                "conic-gradient(from var(--lmi-angle, 0deg), transparent 65%, var(--accent-line) 80%, #9db8ff 95%, transparent 100%)",
+                "conic-gradient(from 210deg, transparent 58%, var(--accent-line) 74%, rgba(157, 184, 255, 0.55) 88%, transparent 100%)",
             }}
           />
           <style>{`
@@ -241,7 +241,7 @@ export function LiquidMultimodalInput({
               inherits: false;
             }
             .lmi-border {
-              animation: lmi-spin 4s linear infinite;
+              /* static: the arc reads as a lit edge, not a loading ring */
             }
             @keyframes lmi-spin {
               to { --lmi-angle: 360deg; }

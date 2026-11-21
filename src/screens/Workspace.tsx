@@ -223,7 +223,7 @@ export function Workspace() {
             {visibleEntries.map((entry, entryIndex) =>
               entry.kind === 'turn' ? (
                 <li key={`turn-${entryIndex}`} className="flex justify-end pb-1.5 pt-1">
-                  <p className="max-w-[86%] rounded-2xl rounded-br-[6px] bg-raised px-3 py-1.5 text-label leading-[1.5] text-fg">
+                  <p className="glass max-w-[86%] rounded-2xl rounded-br-[6px] px-3 py-1.5 text-label leading-[1.5] text-fg">
                     {entry.text}
                   </p>
                 </li>
