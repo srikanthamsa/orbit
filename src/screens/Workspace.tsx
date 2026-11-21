@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Square,
   X,
+  Globe,
 } from 'lucide-react';
 import { followUpTask, useAgentStore } from '@/stores/agent';
 import { formatUsd, hostnameOf } from '@/lib/utils';
@@ -22,6 +23,7 @@ import {
   actionIcon,
 } from '@/components/ui';
 import { AnswerBlocks } from '@/components/AnswerBlocks';
+import { LiquidMultimodalInput } from '@/components/wensity/liquid-multimodal-input';
 
 function clock(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -98,7 +100,8 @@ export function Workspace() {
   };
 
   return (
-    <div className="scroll-thin relative h-full overflow-y-auto px-4 pb-6 pt-4">
+    <div className="flex h-full flex-col">
+      <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
       <div className="animate-rise">
         <div className="flex items-center justify-between gap-2">
           <StatusPill status={task.status} />
@@ -319,51 +322,42 @@ export function Workspace() {
         </div>
       ) : null}
 
+
+
+      <div ref={endRef} className="h-1" />
+      </div>
+
       {terminal ? (
-        <div className="mt-4">
-          <div className="flex items-center gap-2 rounded-sm border border-line px-2 py-1 transition-colors focus-within:border-accent-line">
-            <input
-              value={followUp}
-              onChange={(e) => setFollowUp(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && followUp.trim()) {
-                  const text = followUp;
-                  setFollowUp('');
-                  void followUpTask(text);
-                }
-              }}
-              placeholder="Ask a follow-up"
-              className="min-w-0 flex-1 bg-transparent text-label placeholder:text-faint"
-            />
-            <Button
-              size="sm"
-              variant="primary"
-              className="h-7 w-7 rounded-full p-0"
-              disabled={!followUp.trim()}
-              onClick={() => {
-                const text = followUp;
-                setFollowUp('');
-                void followUpTask(text);
-              }}
-            >
-              <ArrowUp size={13} strokeWidth={2.5} />
-            </Button>
+        <div className="shrink-0 border-t border-line px-4 pb-3 pt-2.5">
+          <LiquidMultimodalInput
+            value={followUp}
+            onChange={setFollowUp}
+            onSubmit={(text) => {
+              if (!text.trim()) return;
+              setFollowUp('');
+              void followUpTask(text.trim());
+            }}
+            placeholder="Ask a follow-up"
+            maxHeight={120}
+            hideModel
+            context={
+              <span className="flex min-w-0 items-center gap-1.5 px-1 text-caption text-faint">
+                <Globe size={12} className="shrink-0" aria-hidden />
+                <span className="truncate">{live?.url ? hostnameOf(live.url) : 'Current tab'}</span>
+              </span>
+            }
+          />
+          <div className="mt-1.5 flex items-center justify-between text-micro text-faint">
+            <span title={cacheDetail}>
+              {tokenCount > 0
+                ? `${tokenCount.toLocaleString()} tokens · ${costLabel}${
+                    cacheRate !== null ? ` · ${cacheRate}% cached` : ''
+                  }`
+                : 'No model usage yet'}
+            </span>
           </div>
         </div>
       ) : null}
-
-      <div className="mt-4 flex items-center justify-between text-micro text-faint">
-        <span title={cacheDetail}>
-          {tokenCount > 0
-            ? `${tokenCount.toLocaleString()} tokens · ${costLabel}${
-                cacheRate !== null ? ` · ${cacheRate}% cached` : ''
-              }`
-            : 'No model usage yet'}
-        </span>
-
-      </div>
-
-      <div ref={endRef} className="h-1" />
 
       {lightbox && screenshot ? (
         <div
