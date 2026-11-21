@@ -6,7 +6,7 @@
   <a href="https://github.com/srikanthamsa/orbit/releases/latest"><img alt="Download the latest release" src="https://img.shields.io/badge/download-latest-22c55e?style=flat" /></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-5a9bff?style=flat" /></a>
   <a href="https://github.com/srikanthamsa/orbit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/srikanthamsa/orbit/actions/workflows/ci.yml/badge.svg" /></a>
-  <a href="https://github.com/srikanthamsa/orbit"><img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-5a9bff?style=flat" /></a>
+  <a href="https://github.com/srikanthamsa/orbit"><img alt="Version 1.1.0" src="https://img.shields.io/badge/version-1.1.0-5a9bff?style=flat" /></a>
   <img alt="Chrome 116+" src="https://img.shields.io/badge/Chrome-116%2B-4285F4?style=flat&logo=googlechrome&logoColor=white" />
   <img alt="Manifest V3" src="https://img.shields.io/badge/Manifest-V3-5a9bff?style=flat" />
   <a href="docs/development.md#testing-conventions"><img alt="76 tests passing" src="https://img.shields.io/badge/tests-76%20passing-22c55e?style=flat" /></a>
