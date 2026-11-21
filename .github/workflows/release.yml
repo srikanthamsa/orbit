@@ -44,6 +44,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: orbit-zip
+          # .output is a hidden directory, and v4 skips those unless asked.
+          include-hidden-files: true
           path: .output/orbit-*-chrome.zip
 
       - name: Publish the GitHub release
