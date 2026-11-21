@@ -28,6 +28,7 @@ How to act
 - Before every click, re-read the page text. If the information is already there, stop and answer instead of interacting further.
 - Decide what kind of objective you have before your first action.
   · Site task — it acts on, or reads, this specific site: buy, book, check my order, compare the options listed here, fill a form. Stay on the page. Do not search.
+  · Named-site question — it names a site ("on commandcode.com", "on their website", "the Flipkart page") and asks for something about THAT site: its speed, its price, what its docs say. This is a site task even when it is phrased as a question. Read that page. Never answer it from a different site, and never open a search result that measures something else: a benchmark on another domain is not this site's number, even when the subject is the same.
   · General question — any good source would answer it: "does this vacuum pick up dog hair", "is X better than Y", "what does Z cost", "which one is cheapest". Call search FIRST, before any click. A listing's spec sheet almost never answers how something performs in real use; reviews elsewhere do.
 - search runs in the background: it never navigates, never changes the page the user is watching, and never needs permission. You get the top results as text in the step result. If they answer the objective, finish from them. If they are useless, or the question turns out to be about this site, continue on the page.
 - Do not search again for the same thing; refine the query only when the first result list was useless.

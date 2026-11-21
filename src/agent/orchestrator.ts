@@ -21,6 +21,7 @@ import {
   STEP_OBSERVATION_LIMIT,
 } from '@/providers/prompt';
 import { checkAnswer } from '@/providers/answerCheck';
+import { leavesNamedSite } from './siteGuard';
 import { requestAction } from '@/providers';
 import type { PromptStep } from '@/providers/types';
 import { captureSnapshot, pageActiveElement, pageClick, pageClickAt, pageElementAt, pageFind, pagePressKey, pageScroll, pageType } from '@/browser/dom';
@@ -350,6 +351,8 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
   const startedAt = Date.now();
   const capabilities = capabilitiesFor(provider);
   let captureBlocked = false;
+  let startUrl = '';
+  let siteNoticeUsed = false;
   /** One rewrite is allowed when the answer misses the question; then it stands. */
   let answerRetried = false;
   /** Carries that rewrite request into the next request, which starts a new step. */
@@ -416,6 +419,7 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
       // Deterministic stop when the page itself blocks the task (stock,
       // CAPTCHA, sign-in). No amount of model reasoning gets past these.
       const request = task.latestRequest?.trim() || task.objective;
+      if (!startUrl) startUrl = snapshot.url;
       const blocker = blockerSummary(snapshot, request);
       if (blocker) {
         checkpoint('completed');
@@ -678,6 +682,17 @@ export async function runAgent(input: RunInput): Promise<RunOutcome> {
       steps.push(step);
       emit({ type: 'step', step });
       checkpoint('running');
+
+      // A question about a named site must not be answered from another site.
+      if (action.type === 'navigate' && !siteNoticeUsed && afterSnapshot) {
+        if (leavesNamedSite(request, startUrl, afterSnapshot.url)) {
+          siteNoticeUsed = true;
+          stallNotice =
+            `You navigated away from ${hostnameOf(startUrl)} to ${hostnameOf(afterSnapshot.url)}. ` +
+            `The question is about ${hostnameOf(startUrl)} itself, so another site's numbers are not an answer to it. ` +
+            `Go back and answer from that page, or say plainly that the page does not show it.`;
+        }
+      }
 
       // No-progress detector: a page that does not change after repeated
       // actions means the strategy is wrong. Typing and form focus are setup
