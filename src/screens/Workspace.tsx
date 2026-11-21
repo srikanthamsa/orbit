@@ -103,19 +103,16 @@ export function Workspace() {
     <div className="flex h-full flex-col">
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
       <div className="animate-rise">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-baseline justify-between gap-3">
           <StatusPill status={task.status} />
-          <span className="text-micro text-faint">
-            {steps.length}/{task.maxSteps} steps
+          <span className="text-micro tabular-nums text-faint">
+            {steps.length} of {task.maxSteps}
           </span>
         </div>
-        <h1 className="mt-2 text-title font-medium text-fg">{task.objective}</h1>
-        {task.model || active ? (
-          <p className="mt-1 text-caption text-faint">
-            {task.model ?? active?.model} · {costLabel}
-          </p>
-        ) : null}
-        <div className="mt-2 h-[2px] w-full overflow-hidden rounded-full bg-line">
+        <h1 className="mt-2.5 text-balance text-page font-semibold leading-[1.25] text-fg">
+          {task.objective}
+        </h1>
+        <div className="mt-3 h-[2px] w-full overflow-hidden rounded-full bg-line">
           <div
             className="h-full rounded-full bg-accent transition-all duration-500 ease-[cubic-bezier(.22,1,.36,1)]"
             style={{ width: `${progress}%` }}
@@ -151,7 +148,7 @@ export function Workspace() {
       ) : null}
 
       {live || !terminal ? (
-      <div className="mt-3.5 border-t border-line pt-2.5">
+      <div className="mt-3.5">
         <div className="flex items-center gap-2">
           <span
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${busy && !paused ? 'live-dot' : ''}`}

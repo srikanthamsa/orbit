@@ -223,7 +223,7 @@ export function LiquidMultimodalInput({
           {/* Animated Gradient Thin Inner Edge (1px) */}
           <div
             aria-hidden
-            className="lmi-border pointer-events-none absolute inset-0 z-10 rounded-[28px] opacity-30 transition-opacity duration-500 group-focus-within:opacity-70 group-hover:opacity-60"
+            className="lmi-border pointer-events-none absolute inset-0 z-10 rounded-[28px] opacity-70 transition-opacity duration-500 group-focus-within:opacity-100 group-hover:opacity-100"
             style={{
               padding: "1px",
               WebkitMask:
@@ -231,7 +231,7 @@ export function LiquidMultimodalInput({
               WebkitMaskComposite: "xor",
               maskComposite: "exclude",
               background:
-                "conic-gradient(from 210deg, transparent 58%, var(--accent-line) 74%, rgba(157, 184, 255, 0.55) 88%, transparent 100%)",
+                "conic-gradient(from var(--lmi-angle, 0deg), transparent 62%, var(--accent-line) 78%, rgba(157, 184, 255, 0.85) 92%, transparent 100%)",
             }}
           />
           <style>{`
@@ -241,7 +241,10 @@ export function LiquidMultimodalInput({
               inherits: false;
             }
             .lmi-border {
-              /* static: the arc reads as a lit edge, not a loading ring */
+              animation: lmi-spin 5s linear infinite;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .lmi-border { animation: none; }
             }
             @keyframes lmi-spin {
               to { --lmi-angle: 360deg; }
