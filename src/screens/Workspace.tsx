@@ -101,7 +101,7 @@ export function Workspace() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4">
+      <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-52 pt-4">
       <div className="animate-rise">
         <div className="flex items-baseline justify-between gap-3">
           <StatusPill status={task.status} />
@@ -324,17 +324,16 @@ export function Workspace() {
       <div ref={endRef} className="h-1" />
       </div>
 
-      {/* The ramp starts at the panel floor and rises behind the composer; the
-          layered masks live in .progressive-blur. */}
-      <div aria-hidden className="progressive-blur">
-        <div />
-        <div />
-        <div />
-        <div />
-      </div>
-
       {terminal ? (
-        <div className="relative z-[1] shrink-0 px-4 pb-3 pt-3">
+        <div className="absolute inset-x-0 bottom-0 z-[1] px-3 pb-3">
+          {/* Grows upward from the composer's own edge; see .progressive-blur. */}
+          <div aria-hidden className="progressive-blur">
+            <div />
+            <div />
+            <div />
+            <div />
+          </div>
+
           <LiquidMultimodalInput
             value={followUp}
             onChange={setFollowUp}

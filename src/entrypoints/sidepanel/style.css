@@ -629,12 +629,30 @@ textarea {
    washes behind it come from body::before, which is what makes the
    translucency readable instead of a grey rectangle. */
 .glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.014) 100%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(8, 8, 11, 0.32);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
   backdrop-filter: blur(22px) saturate(150%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 10px 28px -18px rgba(0, 0, 0, 0.55);
+}
+
+.glass-float {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 1px rgba(0, 0, 0, 0.2),
+    0 8px 24px -8px rgba(0, 0, 0, 0.55),
+    0 24px 56px -16px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='light'] .glass-float {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 1px rgba(16, 20, 35, 0.04),
+    0 8px 24px -8px rgba(16, 20, 35, 0.12),
+    0 24px 56px -16px rgba(16, 20, 35, 0.18);
 }
 
 [data-theme='light'] .glass {
@@ -664,8 +682,8 @@ textarea {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 230px;
+  bottom: 100%;
+  height: 210px;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
@@ -691,15 +709,15 @@ textarea {
 }
 
 .progressive-blur > div:nth-child(3) {
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 50%, #000 100%);
 }
 
 .progressive-blur > div:nth-child(4) {
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(26px);
+  backdrop-filter: blur(26px);
   -webkit-mask-image: linear-gradient(to bottom, transparent 75%, #000 100%);
   mask-image: linear-gradient(to bottom, transparent 75%, #000 100%);
 }
