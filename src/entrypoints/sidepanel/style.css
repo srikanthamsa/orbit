@@ -310,14 +310,6 @@ textarea {
   }
 }
 
-.timeline-line {
-  position: absolute;
-  left: 10px;
-  top: 16px;
-  bottom: 4px;
-  width: 1px;
-  background: linear-gradient(180deg, var(--line-strong), var(--line) 70%, transparent);
-}
 
 /* ---------------------------------------------------------------------------
    Onboarding CTA — "Add your key".

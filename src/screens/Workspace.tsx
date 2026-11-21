@@ -13,7 +13,14 @@ import {
 } from 'lucide-react';
 import { followUpTask, useAgentStore } from '@/stores/agent';
 import { formatUsd, hostnameOf } from '@/lib/utils';
-import { AgentPhaseLabel, Button, RichText, StatusPill, StepMark, actionIcon } from '@/components/ui';
+import {
+  AgentPhaseLabel,
+  Button,
+  RichText,
+  StatusPill,
+  TraceRow,
+  actionIcon,
+} from '@/components/ui';
 import { AnswerBlocks } from '@/components/AnswerBlocks';
 
 function clock(ts: number): string {
@@ -45,6 +52,8 @@ export function Workspace() {
   const [copied, setCopied] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const [showAllSteps, setShowAllSteps] = useState(false);
+  /** Per-step open overrides; a step without one uses its default. */
+  const [stepOpen, setStepOpen] = useState<Record<string, boolean>>({});
   const endRef = useRef<HTMLDivElement>(null);
   const approvalRef = useRef<HTMLDivElement>(null);
 
@@ -207,42 +216,45 @@ export function Workspace() {
                 : `Show ${hiddenEntries} earlier`}
             </button>
           ) : null}
-          <div className="relative">
-            <div className="timeline-line" />
-            <ol className="space-y-3.5">
-              {visibleEntries.map((entry, entryIndex) =>
-                entry.kind === 'turn' ? (
-                  <li key={`turn-${entryIndex}`} className="relative pl-9">
-                    <span
-                      aria-hidden
-                      className="absolute left-[6px] top-[7px] h-2 w-2 rounded-full bg-accent ring-2 ring-canvas"
-                    />
-                    <p className="text-label font-medium text-accent">
-                      You
-                    </p>
-                    <p className="mt-0.5 text-label leading-[1.5] text-fg">{entry.text}</p>
-                  </li>
-                ) : (
-                  <li key={entry.step.id} className="relative pl-9">
-                    <div className="absolute left-0 top-0">
-                      <StepMark status={entry.step.status} />
-                    </div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="flex items-center gap-1.5 text-label font-medium text-fg">
-                        <span className="text-faint">{actionIcon(entry.step.action.type, 12)}</span>
-                        <span className="line-clamp-2">{entry.step.label}</span>
-                      </span>
-                      <span className="ml-auto shrink-0 text-micro text-faint">
-                        {clock(entry.step.at)}
-                      </span>
-                    </div>
+          <ol className="space-y-0.5">
+            {visibleEntries.map((entry, entryIndex) =>
+              entry.kind === 'turn' ? (
+                <li key={`turn-${entryIndex}`} className="flex justify-end pb-1.5 pt-1">
+                  <p className="max-w-[86%] rounded-2xl rounded-br-[6px] bg-raised px-3 py-1.5 text-label leading-[1.5] text-fg">
+                    {entry.text}
+                  </p>
+                </li>
+              ) : (
+                <li key={entry.step.id}>
+                  <TraceRow
+                    icon={actionIcon(entry.step.action.type, 12)}
+                    title={entry.step.label}
+                    meta={clock(entry.step.at)}
+                    status={entry.step.status}
+                    open={
+                      stepOpen[entry.step.id] ??
+                      (entry.step.status !== 'success' ||
+                        (busy && entryIndex === visibleEntries.length - 1))
+                    }
+                    onToggle={() =>
+                      setStepOpen((current) => ({
+                        ...current,
+                        [entry.step.id]:
+                          !(
+                            current[entry.step.id] ??
+                            (entry.step.status !== 'success' ||
+                              (busy && entryIndex === visibleEntries.length - 1))
+                          ),
+                      }))
+                    }
+                  >
                     {entry.step.reasoning ? (
-                      <p className="mt-0.5 text-caption italic leading-snug text-faint">
+                      <p className="text-caption italic leading-snug text-faint">
                         {entry.step.reasoning}
                       </p>
                     ) : null}
                     <p
-                      className="mt-0.5 line-clamp-2 text-caption leading-snug"
+                      className="mt-0.5 text-caption leading-snug"
                       style={{
                         color:
                           entry.step.status === 'failed'
@@ -261,29 +273,29 @@ export function Workspace() {
                         className="mt-1.5 max-h-[110px] w-full rounded-sm border border-line object-cover object-top"
                       />
                     ) : null}
-                  </li>
-                ),
-              )}
-            </ol>
-          </div>
+                  </TraceRow>
+                </li>
+              ),
+            )}
+          </ol>
         </section>
       ) : null}
 
       {summary ? (
-        <div className="mt-4 animate-rise border-l-2 border-success-line pl-3">
-          <div className="flex items-center justify-between">
-            <span className="text-label font-medium text-success">
-              Result
-            </span>
+        // The answer is the reply, not a section: plain text at reading size,
+        // with the actions above it collapsed to single lines.
+        <div className="group mt-3.5 animate-rise">
+          <div className="flex items-start gap-2">
+            <RichText text={summary} className="min-w-0 flex-1" />
             <button
               onClick={() => void copySummary()}
-              className="flex items-center gap-1 rounded-sm px-1.5 text-caption text-muted transition-colors hover:text-fg"
+              aria-label="Copy answer"
+              className="mt-0.5 flex shrink-0 items-center gap-1 rounded-sm px-1 text-caption text-faint opacity-0 transition-opacity hover:text-fg focus-visible:opacity-100 group-hover:opacity-100"
             >
               {copied ? <Check size={11} /> : <Copy size={11} />}
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <RichText text={summary} className="mt-1.5" />
           {summaryBlocks?.length ? <AnswerBlocks blocks={summaryBlocks} className="mt-3" /> : null}
         </div>
       ) : null}

@@ -12,6 +12,7 @@ import {
   Search,
   Check,
   ChevronDown,
+  ChevronUp,
   CircleAlert,
   Compass,
   Flag,
@@ -481,26 +482,6 @@ export function StatusDot({ status, className }: { status: AgentStatus; classNam
   return <span className={cn('block h-1.5 w-1.5 rounded-full', TONE_DOT[meta.tone], className)} />;
 }
 
-export function StepMark({ status }: { status: 'success' | 'failed' | 'rejected' }) {
-  const color =
-    status === 'success' ? 'var(--success)' : status === 'rejected' ? 'var(--warn)' : 'var(--danger)';
-  return (
-    <span
-      className="flex h-5 w-5 items-center justify-center rounded-full border"
-      style={{
-        borderColor: `color-mix(in srgb, ${color} 36%, transparent)`,
-        background: `color-mix(in srgb, ${color} 12%, transparent)`,
-        color,
-      }}
-    >
-      {status === 'success' ? (
-        <Check size={10} strokeWidth={3} />
-      ) : (
-        <CircleAlert size={10} strokeWidth={3} />
-      )}
-    </span>
-  );
-}
 
 
 
@@ -564,6 +545,69 @@ export function AgentPhaseLabel({
         </span>
       )}
     </span>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Trace row                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One agent step, collapsed to a single line: what it did, whether it worked,
+ * when. The reasoning, result and screenshot open underneath on demand, so a
+ * long run reads as a short list of actions instead of a wall of prose.
+ */
+export function TraceRow({
+  icon,
+  title,
+  meta,
+  status,
+  open,
+  onToggle,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  meta?: string;
+  status: 'success' | 'failed' | 'rejected';
+  open: boolean;
+  onToggle: () => void;
+  children?: ReactNode;
+}) {
+  const tone =
+    status === 'success' ? 'var(--success)' : status === 'rejected' ? 'var(--warn)' : 'var(--danger)';
+  return (
+    <div className="group/trace">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="focus-ring-inset flex w-full items-start gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-surface/60"
+      >
+        <span className="mt-[2px] shrink-0" style={{ color: tone }} aria-hidden>
+          {status === 'success' ? (
+            <Check size={12} strokeWidth={2.6} />
+          ) : (
+            <CircleAlert size={12} strokeWidth={2.4} />
+          )}
+        </span>
+        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+          <span className="shrink-0 text-faint" aria-hidden>
+            {icon}
+          </span>
+          <span className="line-clamp-2 min-w-0 text-label leading-[1.45] text-muted group-hover/trace:text-fg">
+            {title}
+          </span>
+        </span>
+        <span className="shrink-0 text-micro text-faint">{meta}</span>
+        <span className="mt-[3px] shrink-0 text-faint" aria-hidden>
+          {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </span>
+      </button>
+      {open ? (
+        <div className="mb-1 ml-[7px] mt-0.5 border-l border-line pl-3 pr-1">{children}</div>
+      ) : null}
+    </div>
   );
 }
 
