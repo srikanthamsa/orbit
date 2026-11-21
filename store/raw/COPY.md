@@ -50,3 +50,16 @@ A backdrop a shade lighter than the panel (`#101319`) gives the screenshot a
 soft edge; brighter than that and the panel edge reads as a hard rectangle.
 One sans for slide type, 700 headline / 400–500 sub, sentence case, no tracked
 capitals.
+
+## Context slide
+
+`store/slides/01-context.png` — 1280×800, a real Chrome window with a real
+Flipkart search page and the real panel docked right, framed with the measured
+MacBook Pro 14-inch edge, bezel and base geometry. No text on it, so a headline
+goes in the slide tool.
+
+The honest limit: a 400 px panel is 26% of a 1512 pt laptop screen, so at a
+scale where the panel reads (400 px wide on the slide) the lid is 1552 px wide
+and fills the whole canvas. There is no crop that shows a recognisable laptop
+*and* a legible panel. This composition keeps the panel legible and the frame
+tells you it is a screen: the right edge, the bezel, the base below the fold.
