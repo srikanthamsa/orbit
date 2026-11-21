@@ -326,38 +326,12 @@ export function Workspace() {
 
       {terminal ? (
         <div className="relative shrink-0 px-4 pb-3 pt-3">
-          {/*
-            The blur starts at the box and fades upward. Four bottom-anchored
-            strips, each a little taller than the next and each with a small
-            blur: backdrop-filter blurs what is already painted behind it, so
-            the effects stack. At the composer the content carries all four
-            (~8px) and a darkening wash; 96px up it carries only the 0.6px one.
-            A single masked strip could only switch on at a fixed distance.
-          */}
-          <div aria-hidden className="pointer-events-none absolute -left-4 -right-4 -top-24 h-24">
-            {[
-              { height: 96, blur: 0.6 },
-              { height: 72, blur: 1.2 },
-              { height: 48, blur: 2.4 },
-              { height: 24, blur: 4.8 },
-            ].map((layer) => (
-              <div
-                key={layer.height}
-                className="absolute inset-x-0 bottom-0"
-                style={{
-                  height: layer.height,
-                  backdropFilter: `blur(${layer.blur}px)`,
-                  WebkitBackdropFilter: `blur(${layer.blur}px)`,
-                }}
-              />
-            ))}
-            <div
-              className="absolute inset-x-0 bottom-0 h-24"
-              style={{
-                background:
-                  'linear-gradient(to top, rgba(7, 7, 10, 0.94) 0%, rgba(7, 7, 10, 0.82) 30%, rgba(7, 7, 10, 0.5) 62%, transparent 100%)',
-              }}
-            />
+          {/* Blur grows as content approaches the box; see .progressive-blur. */}
+          <div aria-hidden className="progressive-blur">
+            <div />
+            <div />
+            <div />
+            <div />
           </div>
           <LiquidMultimodalInput
             value={followUp}

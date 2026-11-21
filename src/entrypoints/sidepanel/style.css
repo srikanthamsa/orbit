@@ -656,3 +656,67 @@ textarea {
     backdrop-filter: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Progressive blur above the composer.
+
+   A single blurred strip ends on a hard edge wherever its top boundary sits,
+   and a bottom-anchored stack has one hard edge per layer. Masking every layer
+   to transparent at the top removes all of them: the only boundary left is the
+   composer itself, which is the point.
+--------------------------------------------------------------------------- */
+
+.progressive-blur {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 150px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.progressive-blur > div {
+  position: absolute;
+  inset: 0;
+}
+
+.progressive-blur > div:nth-child(1) {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 100%);
+}
+
+.progressive-blur > div:nth-child(2) {
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 25%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 25%, #000 100%);
+}
+
+.progressive-blur > div:nth-child(3) {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 50%, #000 100%);
+}
+
+.progressive-blur > div:nth-child(4) {
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 75%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 75%, #000 100%);
+}
+
+/* A last few pixels of falloff so the blur meets the composer instead of
+   stopping on it. Shallow on purpose: this darkens, it does not hide. */
+.progressive-blur::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  background: linear-gradient(to top, rgba(7, 7, 10, 0.72) 0%, transparent 100%);
+}
