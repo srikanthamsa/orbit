@@ -272,7 +272,7 @@ if (demo === 'workspace') {
   });
 } else if (demo === 'genui') {
   seedWorkspace({
-    task: { ...task, status: 'completed', objective: 'compare five wireless headphones under 15,000' },
+    task: { ...task, status: 'completed', objective: 'Compare five wireless headphones under 15,000' },
     currentAction: null,
     summary: 'Sony leads on comfort and noise cancelling, JBL on battery. Prices from Amazon.in today.',
     summaryBlocks: [
@@ -348,10 +348,10 @@ if (demo === 'workspace') {
     task: {
       ...task,
       status: 'completed',
-      objective: 'give me all the DLC app ids for Road Redemption',
+      objective: 'Give me all the DLC app ids for Road Redemption',
       turns: [
         { text: 'just the ids, nothing else', at: now - 1000 * 35 },
-        { text: 'which of those are actual store pages?', at: now - 1000 * 12 },
+        { text: 'Which of those are actual store pages?', at: now - 1000 * 12 },
       ],
     },
     currentAction: null,
