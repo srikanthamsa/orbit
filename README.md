@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/screenshots/hero-white.jpg" alt="ORBIT in the Chrome side panel: a question, the steps it took, and the answer" width="100%" />
+  <img src="store-assets/final/screenshot-1.png" alt="ORBIT in the Chrome side panel: a question, the steps it took, and the answer" width="100%" />
 </p>
 
 <p align="center">
@@ -58,23 +58,19 @@ Most browser AI stops at "here is what you could do." ORBIT does the thing — t
 ## Screenshots
 
 <p align="center">
-  <a href="store-assets/final/screenshot-1.png"><img src="store-assets/final/screenshot-1.png" alt="ORBIT answering a comparison inside the browser side panel" width="100%" /></a>
-</p>
-
-<p align="center">
-  <a href="store-assets/final/screenshot-2.png"><img src="store-assets/final/screenshot-2.png" alt="A step opened: the reasoning, the result and the screenshot" width="49%" /></a>
+  <a href="store-assets/final/screenshot-2.png"><img src="store-assets/final/screenshot-2.png" alt="Close the panel mid-run and pick it up again" width="49%" /></a>
   &nbsp;
-  <a href="store-assets/final/screenshot-3.png"><img src="store-assets/final/screenshot-3.png" alt="Two states side by side: the answer and its comparison table" width="49%" /></a>
+  <a href="store-assets/final/screenshot-3.png"><img src="store-assets/final/screenshot-3.png" alt="A step opened: the reasoning, the result and what the page returned" width="49%" /></a>
 </p>
 
 <p align="center">
-  <a href="store-assets/final/screenshot-4.png"><img src="store-assets/final/screenshot-4.png" alt="The verdict first, the working folded underneath" width="49%" /></a>
+  <a href="store-assets/final/screenshot-4.png"><img src="store-assets/final/screenshot-4.png" alt="A one-line verdict next to a comparison table and chart" width="49%" /></a>
   &nbsp;
   <a href="store-assets/final/screenshot-5.png"><img src="store-assets/final/screenshot-5.png" alt="Bring your own model, nothing leaves your tab, MIT licensed" width="49%" /></a>
 </p>
 
 Every shot is a capture of the real extension, driven through its own UI and
-chrome.storage, then composed on white. Rebuild them with
+`chrome.storage`, then composed on white. Rebuild them with
 `node store-assets/capture.mjs && node store-assets/render.mjs`.
 
 ## Install

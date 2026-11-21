@@ -28,8 +28,8 @@ const executablePath = join(
 const OUTPUTS = [
   ['screenshot-1', 'hero', 1280, 800],
   ['screenshot-2', 'split', 1280, 800],
-  ['screenshot-3', 'bento', 1280, 800],
-  ['screenshot-4', 'answer', 1280, 800],
+  ['screenshot-3', 'trace', 1280, 800],
+  ['screenshot-4', 'bento', 1280, 800],
   ['screenshot-5', 'trust', 1280, 800],
   ['promo-small', 'promo-small', 440, 280],
   ['promo-marquee', 'promo-marquee', 1400, 560],

@@ -146,27 +146,33 @@ const SETTINGS = {
 
 const meta = {};
 
-async function contentHeight(page) {
-  return page.evaluate(() => {
-    const leaves = [...document.querySelectorAll('span, p, div')].filter(
-      (el) => el.children.length === 0 && el.textContent?.trim(),
-    );
-    const bottom = leaves.map((el) => el.getBoundingClientRect().bottom).filter((b) => b > 0).sort((a, b) => b - a)[0];
-    return Math.ceil(Math.min(Math.max(bottom ?? 400, 320), 1400) + 20);
+const resetScroll = () =>
+  page.evaluate(() => {
+    for (const el of document.querySelectorAll('*')) if (el.scrollTop > 0) el.scrollTop = 0;
+    window.scrollTo(0, 0);
   });
-}
+
+/**
+ * One fixed tall frame for every state. The panel scrolls itself to its newest
+ * step on mount, so an auto-height measurement taken then reports whatever was
+ * on screen; a fixed frame is boring and correct, and the slide template does
+ * its own cropping.
+ */
+const FRAME = { width: PANEL_WIDTH, height: 1180 };
 
 async function shoot(page, name) {
   // Focus the site so the panel reports its host, then shoot the panel while it
   // sits in the background: an unfocused page still renders in headless.
   await site.bringToFront();
+  await page.setViewportSize(FRAME);
   await page.waitForTimeout(500);
-  const height = await contentHeight(page);
-  await page.setViewportSize({ width: PANEL_WIDTH, height });
-  await page.waitForTimeout(250);
+  await resetScroll();
+  await page.waitForTimeout(400);
+  await resetScroll();
+  await page.waitForTimeout(200);
   await page.screenshot({ path: join(OUT, `${name}.png`) });
-  meta[name] = { width: PANEL_WIDTH, height };
-  console.log(`  ${name}.png  ${PANEL_WIDTH}x${height}`);
+  meta[name] = { ...FRAME };
+  console.log(`  ${name}.png  ${FRAME.width}x${FRAME.height}`);
 }
 
 const profile = mkdtempSync(join(tmpdir(), 'orbit-store-'));
@@ -236,9 +242,9 @@ await seed({
 await reload();
 await shoot(page, 'home');
 
-// 2 · the answer, opened from history
+// 2 · a short answer, opened from history
 await reload();
-await page.getByText('Compare five wireless headphones under ₹15,000', { exact: false }).first().click();
+await page.getByText('What DLC does Road Redemption have', { exact: false }).first().click();
 await page.waitForTimeout(600);
 await shoot(page, 'answer');
 

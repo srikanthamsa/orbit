@@ -1,18 +1,18 @@
 {
   "home": {
     "width": 400,
-    "height": 888
+    "height": 1180
   },
   "answer": {
     "width": 400,
-    "height": 904
+    "height": 1180
   },
   "rich": {
     "width": 400,
-    "height": 920
+    "height": 1180
   },
   "step-open": {
     "width": 400,
-    "height": 973
+    "height": 1180
   }
 }
