@@ -511,7 +511,9 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       id: record.id,
       objective: record.objective,
       status: record.status,
-      currentStep: sessionSteps.length,
+      // A record saved without its steps still knows how many it took, and the
+      // header should say 18/25 rather than 0/25 when one is reopened.
+      currentStep: sessionSteps.length || record.stepCount,
       maxSteps: get().settings.maxSteps,
       model: record.model,
       turns: record.turns,
