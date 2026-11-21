@@ -51,13 +51,41 @@ const storageRoundTrip = await page.evaluate(async () => {
   return stored['orbit.smoke'];
 });
 
+/**
+ * The panel must actually take clicks. A single CSS rule once gave <html>
+ * pointer-events: none, which looks identical in a screenshot and makes every
+ * control on screen dead. Clicking the onboarding CTA must reach its handler.
+ */
+const cta = page.locator('button, [role="button"]').first();
+const ctaHittable = await page.evaluate(() => {
+  const button = document.querySelector('button');
+  if (!button) return false;
+  const box = button.getBoundingClientRect();
+  const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+  return !!hit && button.contains(hit);
+});
+let ctaOpenedSettings = false;
+if (ctaHittable) {
+  await cta.click({ timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(600);
+  const body = await page.evaluate(() => document.body.innerText);
+  ctaOpenedSettings = /bring your own model/i.test(body) && /settings/i.test(body);
+}
+
 console.log('side panel heading:', JSON.stringify(heading));
+console.log('cta hittable:', ctaHittable, '| click reached its handler:', ctaOpenedSettings);
 console.log('brand line:', JSON.stringify(brand.replace(/\s+/g, ' ').trim()));
 console.log('sidePanel API available:', hasSidePanelApi);
 console.log('storage round-trip:', storageRoundTrip);
 console.log('errors:', errors.length ? errors : 'none');
 
-const ok = heading.length > 0 && hasSidePanelApi && storageRoundTrip === 42 && errors.length === 0;
+const ok =
+  heading.length > 0 &&
+  hasSidePanelApi &&
+  storageRoundTrip === 42 &&
+  ctaHittable &&
+  ctaOpenedSettings &&
+  errors.length === 0;
 console.log(ok ? 'SMOKE PASS' : 'SMOKE FAIL');
 await context.close();
 process.exit(ok ? 0 : 1);

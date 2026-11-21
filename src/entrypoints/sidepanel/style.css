@@ -11,7 +11,6 @@
    one palette.
 --------------------------------------------------------------------------- */
 
-:root,
 /* The dark canvas is a lit surface, not a void: two low washes give the glass
    something to refract. Fixed so it never scrolls with the transcript. */
 [data-theme='dark'] body::before {
@@ -37,6 +36,7 @@
   z-index: 0;
 }
 
+:root,
 [data-theme='dark'] {
   --canvas: #0b0b0d;
   --chrome: #0e0e11;
